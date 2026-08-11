@@ -323,9 +323,15 @@ export default function ComplaintForm() {
           // Out of warranty flow
           return (
             <div className="glass-panel">
-              <h2><span className="badge badge-warning" style={{marginRight: '8px'}}>Out of Warranty</span></h2>
-              <p>Your product is out of warranty. The service charge is:</p>
-              <h1 style={{margin: '1.5rem 0', fontSize: '3rem'}}>{formData.chargeamount} SAR</h1>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <span style={{ border: '1px solid #b45309', color: '#f59e0b', background: 'rgba(180, 83, 9, 0.2)', padding: '0.35rem 0.75rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Out of Warranty
+                </span>
+              </div>
+              <p style={{ color: 'var(--text-secondary)' }}>Your product is out of warranty. The service charge is:</p>
+              <h1 style={{ margin: '2rem 0', fontSize: '4rem', textAlign: 'center', color: '#a5b4fc', fontWeight: '700' }}>
+                {formData.chargeamount} SAR
+              </h1>
               
               {!declineConfirm && formData.decision !== 'accepted' && (
                 <div style={{ display: 'flex', gap: '1rem' }}>

@@ -21,15 +21,19 @@ const SHEET_NAME = 'Complaints';
 // verifiedby | verifiedat
 
 function getAuth() {
-  return new google.auth.JWT(
-    process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-    null,
-    (process.env.GOOGLE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
-    [
+  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  const key = (process.env.GOOGLE_PRIVATE_KEY || '').replace(/\\n/g, '\n');
+  
+  return new google.auth.GoogleAuth({
+    credentials: {
+      client_email: email,
+      private_key: key,
+    },
+    scopes: [
       'https://www.googleapis.com/auth/spreadsheets',
       'https://www.googleapis.com/auth/drive.file',
     ]
-  );
+  });
 }
 
 async function uploadToDrive(auth, file) {
@@ -94,6 +98,11 @@ export default async function handler(req, res) {
     const fields = {};
     for (const key of Object.keys(rawFields)) {
       fields[key] = Array.isArray(rawFields[key]) ? rawFields[key][0] : rawFields[key];
+    }
+    
+    // Also normalize files to prevent undefined errors when trying to read file.filepath
+    for (const key of Object.keys(files)) {
+      files[key] = Array.isArray(files[key]) ? files[key][0] : files[key];
     }
 
     const warrantystatus = fields.warrantystatus; // 'IW' | 'OW'
