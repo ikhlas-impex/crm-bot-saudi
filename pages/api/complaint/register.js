@@ -49,6 +49,7 @@ async function uploadToDrive(auth, file) {
       body: fs.createReadStream(file.filepath),
     },
     fields: 'id',
+    supportsAllDrives: true,
   });
   const fileId = created.data.id;
   // Anyone-with-the-link reader access so the admin dashboard can render it
@@ -56,6 +57,7 @@ async function uploadToDrive(auth, file) {
   await drive.permissions.create({
     fileId,
     requestBody: { role: 'reader', type: 'anyone' },
+    supportsAllDrives: true,
   });
   return `https://drive.google.com/uc?id=${fileId}`;
 }
