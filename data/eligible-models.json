@@ -1,0 +1,20 @@
+{
+  "categories": {
+    "Television": {
+      "models": ["GLORIA 32", "EVOQ 43", "LUMINA 55", "TITAN 65", "CINEMA 75"],
+      "charge": 150
+    },
+    "Refrigerator": {
+      "models": ["FROST 200L", "FROST 300L", "ICEBOX 500L"],
+      "charge": 200
+    },
+    "Washing Machine": {
+      "models": ["WASH 6KG", "WASH 8KG", "CLEAN 10KG"],
+      "charge": 180
+    },
+    "Air Conditioner": {
+      "models": ["COOL 1T", "COOL 1.5T", "CHILL 2T"],
+      "charge": 250
+    }
+  }
+}
