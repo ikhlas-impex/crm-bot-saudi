@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import imageCompression from 'browser-image-compression';
 
 export default function ComplaintForm() {
   const router = useRouter();
@@ -55,10 +56,27 @@ export default function ComplaintForm() {
     setError('');
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const { name, files: fileList } = e.target;
     if (fileList.length > 0) {
-      setFiles(prev => ({ ...prev, [name]: fileList[0] }));
+      const file = fileList[0];
+      try {
+        const options = {
+          maxSizeMB: 1, // Target size is 1MB to easily fit under Vercel's 4.5MB limit
+          maxWidthOrHeight: 1920,
+          useWebWorker: true,
+        };
+        const compressedBlob = await imageCompression(file, options);
+        // Cast the compressed blob back into a File to preserve the filename for formData
+        const finalFile = new File([compressedBlob], file.name, {
+          type: compressedBlob.type || file.type,
+        });
+        setFiles(prev => ({ ...prev, [name]: finalFile }));
+      } catch (error) {
+        console.error('Error compressing image:', error);
+        // Fallback to original file if compression fails
+        setFiles(prev => ({ ...prev, [name]: file }));
+      }
     }
   };
 
