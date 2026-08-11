@@ -189,18 +189,22 @@ export default async function handler(req, res) {
     });
 
     if (sendConfirmationNow) {
-      // Fire-and-forget - don't block the customer's response on WhatsApp delivery.
-      fetch('https://n8n.srv1623198.hstgr.cloud/webhook/impex-complaint-confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          uid,
-          phone: fields.phone,
-          customername: fields.customername,
-          productgroup: fields.productgroup,
-          servicecentre: fields.servicecentre,
-        }),
-      }).catch((e) => console.error('impex-complaint-confirm call failed', e));
+      // Must await on Vercel, otherwise the function terminates before the request sends
+      try {
+        await fetch('https://n8n.srv1623198.hstgr.cloud/webhook/impex-complaint-confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            uid,
+            phone: fields.phone,
+            customername: fields.customername,
+            productgroup: fields.productgroup,
+            servicecentre: fields.servicecentre,
+          }),
+        });
+      } catch (e) {
+        console.error('impex-complaint-confirm call failed', e);
+      }
     }
 
     return res.status(200).json({
