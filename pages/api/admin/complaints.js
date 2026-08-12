@@ -30,15 +30,27 @@ export default async function handler(req, res) {
       date: r[1] || '',
       phone: r[2] || '',
       customername: r[3] || '',
+      altmobile: r[4] || '',
+      address: r[5] || '',
+      city: r[6] || '',
+      area: r[7] || '',
       productgroup: r[8] || '',
       model: r[9] || '',
+      modelserialimg: r[10] || '',
+      productimg: r[11] || '',
+      invoiceimg: r[12] || '',
+      complaintdetails: r[13] || '',
+      dop: r[14] || '',
       warrantystatus: r[15] || '',
       chargeamount: r[16] || '0',
       paymentproofimg: r[17] || '',
       paymentstatus: r[18] || '',
       status: r[19] || '',
       servicecentre: r[20] || '',
+      cancelreason: r[21] || '',
       createdat: r[22] || '',
+      verifiedby: r[23] || '',
+      verifiedat: r[24] || ''
     }));
     
     // Apply filters
