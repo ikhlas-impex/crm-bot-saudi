@@ -27,7 +27,7 @@ export default function AdminLogin() {
       sessionStorage.setItem('sessionid', data.sessionid);
       sessionStorage.setItem('role', data.role);
       sessionStorage.setItem('servicecentre', data.servicecentre || '');
-      router.push('/admin/complaints');
+      router.push('/admin');
     } catch (err) {
       setError('Network error');
     } finally {
