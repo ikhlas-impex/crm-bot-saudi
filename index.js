@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 
 const MAX_UID_ATTEMPTS = 3;
 
@@ -35,7 +36,9 @@ function RatingInput({ label, value, onChange, max = 10 }) {
 }
 
 export default function FeedbackPage() {
-  const [step, setStep] = useState('uid'); // uid | already | form | done
+  const router = useRouter();
+  // loading | pick | none | uid | already | form | done
+  const [step, setStep] = useState('uid');
   const [uid, setUid] = useState('');
   const [uidInput, setUidInput] = useState('');
   const [uidError, setUidError] = useState('');
@@ -44,6 +47,48 @@ export default function FeedbackPage() {
   const [answers, setAnswers] = useState(initialAnswers);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [pickList, setPickList] = useState([]);
+
+  // Auto-lookup by phone if Interakt handed one off in the URL - skips
+  // manual UID entry entirely in the common case (one eligible complaint).
+  useEffect(() => {
+    if (!router.isReady) return;
+    const phone = router.query.phone;
+    if (!phone) {
+      setStep('uid');
+      return;
+    }
+    setStep('loading');
+    (async () => {
+      try {
+        const res = await fetch('/api/feedback/lookup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone }),
+        });
+        const data = await res.json();
+        if (!data.success || !data.complaints || data.complaints.length === 0) {
+          setStep('none');
+          return;
+        }
+        if (data.complaints.length === 1) {
+          setUid(data.complaints[0].uid);
+          setStep('form');
+          return;
+        }
+        setPickList(data.complaints);
+        setStep('pick');
+      } catch (err) {
+        console.error(err);
+        setStep('uid'); // fall back to manual entry on any lookup failure
+      }
+    })();
+  }, [router.isReady, router.query.phone]);
+
+  function selectFromPickList(pickedUid) {
+    setUid(pickedUid);
+    setStep('form');
+  }
 
   async function handleUidSubmit(e) {
     e.preventDefault();
@@ -124,6 +169,33 @@ export default function FeedbackPage() {
   return (
     <div style={{ maxWidth: 560, margin: '40px auto', padding: 20, fontFamily: 'sans-serif' }}>
       <h1>Impex Service Feedback</h1>
+
+      {step === 'loading' && <p>Looking up your service request...</p>}
+
+      {step === 'pick' && (
+        <div>
+          <p>We found more than one service request on file for your number. Which one would you like to rate?</p>
+          {pickList.map((c) => (
+            <button
+              key={c.uid}
+              onClick={() => selectFromPickList(c.uid)}
+              style={{ display: 'block', width: '100%', textAlign: 'left', padding: 12, marginBottom: 8 }}
+            >
+              <strong>{c.uid}</strong> — {c.productgroup} {c.model ? `(${c.model})` : ''} — {c.date}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {step === 'none' && (
+        <div>
+          <p>We couldn't find a completed service request on file for your WhatsApp number.</p>
+          <p>If you believe this is incorrect, or you're using a different number than the one on your service request, you can enter your Service UID manually instead.</p>
+          <button onClick={() => setStep('uid')} style={{ padding: '10px 20px' }}>
+            Enter Service UID manually
+          </button>
+        </div>
+      )}
 
       {step === 'uid' && (
         <form onSubmit={handleUidSubmit}>

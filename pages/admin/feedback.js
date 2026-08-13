@@ -10,8 +10,35 @@ export default function FeedbackDashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [selectedFeedbackDetails, setSelectedFeedbackDetails] = useState(null);
+  const [customerDetails, setCustomerDetails] = useState(null);
+  const [loadingCustomer, setLoadingCustomer] = useState(false);
+  const [customerError, setCustomerError] = useState('');
 
   const getSessionId = () =>
+    typeof window !== 'undefined' ? sessionStorage.getItem('sessionid') : null;
+
+  async function fetchCustomerDetails(uid) {
+    const sessionid = getSessionId();
+    setLoadingCustomer(true);
+    setCustomerError('');
+    try {
+      const res = await fetch('/api/admin/customer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionid, uid }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        setCustomerError(data.message || 'Failed to fetch customer details');
+      } else {
+        setCustomerDetails(data.customer);
+      }
+    } catch (err) {
+      setCustomerError('Network error');
+    } finally {
+      setLoadingCustomer(false);
+    }
+  }
     typeof window !== 'undefined' ? sessionStorage.getItem('sessionid') : null;
 
   const loadFeedback = useCallback(async () => {
@@ -178,44 +205,101 @@ export default function FeedbackDashboard() {
       </div>
 
       {selectedFeedbackDetails && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} onClick={() => setSelectedFeedbackDetails(null)}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} onClick={() => { setSelectedFeedbackDetails(null); setCustomerDetails(null); setCustomerError(''); }}>
           <div className="glass-panel" style={{ maxWidth: '800px', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '2rem', position: 'relative' }} onClick={e => e.stopPropagation()}>
-            <button 
-              onClick={() => setSelectedFeedbackDetails(null)}
-              style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '1.5rem', cursor: 'pointer' }}
-            >
-              &times;
-            </button>
-            <h2 style={{ margin: '0 0 1.5rem 0', fontSize: '1.5rem', color: 'var(--text-primary)' }}>Feedback Details: {selectedFeedbackDetails.uid}</h2>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
               <div>
-                <h3 style={{ color: '#a5b4fc', fontSize: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem', marginBottom: '1rem' }}>Scores (out of 10)</h3>
-                <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '180px', display: 'inline-block' }}>Technician Behaviour:</strong> {selectedFeedbackDetails.q1_technician_behaviour}</p>
-                <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '180px', display: 'inline-block' }}>Technician Punctuality:</strong> {selectedFeedbackDetails.q2_technician_punctuality}</p>
-                <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '180px', display: 'inline-block' }}>Service Quality:</strong> {selectedFeedbackDetails.q3_service_quality}</p>
-                <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '180px', display: 'inline-block' }}>Response Time:</strong> {selectedFeedbackDetails.q5_response_time}</p>
-                <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '180px', display: 'inline-block' }}>Product Satisfaction:</strong> {selectedFeedbackDetails.q7_product_satisfaction}</p>
-                <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '180px', display: 'inline-block' }}>Recommend Impex:</strong> {selectedFeedbackDetails.q9_recommendation}</p>
-                <p style={{ margin: '0.5rem 0', fontSize: '0.875rem', fontWeight: 'bold' }}><strong style={{ color: 'var(--text-secondary)', width: '180px', display: 'inline-block' }}>Overall Experience:</strong> {selectedFeedbackDetails.q6_overall_experience}</p>
-              </div>
-              
-              <div>
-                <h3 style={{ color: '#a5b4fc', fontSize: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem', marginBottom: '1rem' }}>Resolution</h3>
-                <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', display: 'inline-block' }}>Status:</strong> {selectedFeedbackDetails.q4_resolution}</p>
-                {selectedFeedbackDetails.q4_comment && (
-                  <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', display: 'inline-block' }}>Pending Issue:</strong> {selectedFeedbackDetails.q4_comment}</p>
+                <h2 style={{ margin: '0 0 0.5rem 0', fontSize: '1.5rem', color: 'var(--text-primary)' }}>
+                  {customerDetails ? 'Customer Profile' : 'Feedback Details'}: {selectedFeedbackDetails.uid}
+                </h2>
+                {!customerDetails ? (
+                  <button 
+                    onClick={() => fetchCustomerDetails(selectedFeedbackDetails.uid)}
+                    style={{ padding: '0.4rem 1rem', fontSize: '0.75rem', background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)', border: 'none', color: '#fff', borderRadius: '6px', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', transition: 'opacity 0.2s' }}
+                    onMouseOver={(e) => e.currentTarget.style.opacity = '0.9'}
+                    onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
+                    disabled={loadingCustomer}
+                  >
+                    {loadingCustomer ? 'Loading...' : 'View Customer Profile'}
+                  </button>
+                ) : (
+                  <button 
+                    onClick={() => setCustomerDetails(null)}
+                    style={{ padding: '0.4rem 1rem', fontSize: '0.75rem', background: 'linear-gradient(135deg, #3b82f6 0%, #2dd4bf 100%)', border: 'none', color: '#fff', borderRadius: '6px', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', transition: 'opacity 0.2s' }}
+                    onMouseOver={(e) => e.currentTarget.style.opacity = '0.9'}
+                    onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
+                  >
+                    ← Back to Feedback
+                  </button>
                 )}
-                
-                <h3 style={{ color: '#a5b4fc', fontSize: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem', marginTop: '1.5rem', marginBottom: '1rem' }}>Comments</h3>
-                <p style={{ margin: '0.5rem 0', fontSize: '0.875rem', whiteSpace: 'pre-wrap' }}>{selectedFeedbackDetails.q8_comments}</p>
               </div>
+              <button 
+                onClick={() => { setSelectedFeedbackDetails(null); setCustomerDetails(null); setCustomerError(''); }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '1.5rem', cursor: 'pointer', padding: 0 }}
+              >
+                &times;
+              </button>
             </div>
             
-            {selectedFeedbackDetails.flagged && (
-              <div style={{ marginTop: '1.5rem', padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '8px' }}>
-                <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem', color: '#ef4444' }}>Flag Reason</h3>
-                <p style={{ margin: 0, fontSize: '0.875rem' }}>{selectedFeedbackDetails.flagreason}</p>
+            {customerError && <div style={{ color: 'var(--error-color)', marginBottom: '1rem' }}>{customerError}</div>}
+
+            {!customerDetails ? (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+                  <div>
+                    <h3 style={{ color: '#a5b4fc', fontSize: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem', marginBottom: '1rem' }}>Scores (out of 10)</h3>
+                    <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '180px', display: 'inline-block' }}>Technician Behaviour:</strong> {selectedFeedbackDetails.q1_technician_behaviour}</p>
+                    <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '180px', display: 'inline-block' }}>Technician Punctuality:</strong> {selectedFeedbackDetails.q2_technician_punctuality}</p>
+                    <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '180px', display: 'inline-block' }}>Service Quality:</strong> {selectedFeedbackDetails.q3_service_quality}</p>
+                    <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '180px', display: 'inline-block' }}>Response Time:</strong> {selectedFeedbackDetails.q5_response_time}</p>
+                    <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '180px', display: 'inline-block' }}>Product Satisfaction:</strong> {selectedFeedbackDetails.q7_product_satisfaction}</p>
+                    <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '180px', display: 'inline-block' }}>Recommend Impex:</strong> {selectedFeedbackDetails.q9_recommendation}</p>
+                    <p style={{ margin: '0.5rem 0', fontSize: '0.875rem', fontWeight: 'bold' }}><strong style={{ color: 'var(--text-secondary)', width: '180px', display: 'inline-block' }}>Overall Experience:</strong> {selectedFeedbackDetails.q6_overall_experience}</p>
+                  </div>
+                  
+                  <div>
+                    <h3 style={{ color: '#a5b4fc', fontSize: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem', marginBottom: '1rem' }}>Resolution</h3>
+                    <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', display: 'inline-block' }}>Status:</strong> {selectedFeedbackDetails.q4_resolution}</p>
+                    {selectedFeedbackDetails.q4_comment && (
+                      <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', display: 'inline-block' }}>Pending Issue:</strong> {selectedFeedbackDetails.q4_comment}</p>
+                    )}
+                    
+                    <h3 style={{ color: '#a5b4fc', fontSize: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem', marginTop: '1.5rem', marginBottom: '1rem' }}>Comments</h3>
+                    <p style={{ margin: '0.5rem 0', fontSize: '0.875rem', whiteSpace: 'pre-wrap' }}>{selectedFeedbackDetails.q8_comments}</p>
+                  </div>
+                </div>
+                
+                {selectedFeedbackDetails.flagged && (
+                  <div style={{ marginTop: '1.5rem', padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '8px' }}>
+                    <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem', color: '#ef4444' }}>Flag Reason</h3>
+                    <p style={{ margin: 0, fontSize: '0.875rem' }}>{selectedFeedbackDetails.flagreason}</p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+                <div>
+                  <h3 style={{ color: '#a5b4fc', fontSize: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem', marginBottom: '1rem' }}>Contact Info</h3>
+                  <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', display: 'inline-block' }}>Name:</strong> {customerDetails.customername}</p>
+                  <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', display: 'inline-block' }}>Phone:</strong> {customerDetails.phone}</p>
+                  {customerDetails.altmobile && <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', display: 'inline-block' }}>Alt Phone:</strong> {customerDetails.altmobile}</p>}
+                  
+                  <h3 style={{ color: '#a5b4fc', fontSize: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem', marginTop: '1.5rem', marginBottom: '1rem' }}>Location</h3>
+                  <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', display: 'inline-block' }}>Address:</strong> {customerDetails.address}</p>
+                  <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', display: 'inline-block' }}>City/Area:</strong> {customerDetails.city} / {customerDetails.area}</p>
+                </div>
+                
+                <div>
+                  <h3 style={{ color: '#a5b4fc', fontSize: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem', marginBottom: '1rem' }}>Product Info</h3>
+                  <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', display: 'inline-block' }}>Group:</strong> {customerDetails.productgroup}</p>
+                  <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', display: 'inline-block' }}>Model:</strong> {customerDetails.model}</p>
+                  <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', display: 'inline-block' }}>Warranty:</strong> {customerDetails.warrantystatus}</p>
+                  
+                  <h3 style={{ color: '#a5b4fc', fontSize: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem', marginTop: '1.5rem', marginBottom: '1rem' }}>Original Complaint</h3>
+                  <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', display: 'inline-block' }}>Status:</strong> {customerDetails.status}</p>
+                  <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', display: 'inline-block' }}>Service Centre:</strong> {customerDetails.servicecentre}</p>
+                  <p style={{ margin: '0.5rem 0', fontSize: '0.875rem', marginTop: '1rem' }}><strong style={{ color: 'var(--text-secondary)' }}>Complaint Details:</strong><br/><br/><span style={{ whiteSpace: 'pre-wrap', display: 'block', padding: '0.75rem', background: 'rgba(0,0,0,0.2)', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.05)' }}>{customerDetails.complaintdetails}</span></p>
+                </div>
               </div>
             )}
           </div>

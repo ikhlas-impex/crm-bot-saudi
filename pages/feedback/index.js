@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import Head from 'next/head';
 
 const MAX_UID_ATTEMPTS = 3;
@@ -28,13 +29,15 @@ const RatingBubble = ({ value, selectedValue, onClick }) => {
       type="button"
       onClick={() => onClick(value.toString())}
       style={{
-        width: '40px',
-        height: '40px',
+        flex: 1,
+        aspectRatio: '1 / 1',
+        maxWidth: '45px',
+        minWidth: '24px',
         borderRadius: '50%',
         border: isSelected ? 'none' : '1px solid rgba(255,255,255,0.1)',
         background: isSelected ? selectedBg : 'rgba(255,255,255,0.02)',
         color: isSelected ? '#fff' : '#94a3b8',
-        fontSize: '1rem',
+        fontSize: 'clamp(0.7rem, 2.5vw, 1rem)',
         fontWeight: 'bold',
         cursor: 'pointer',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -43,6 +46,7 @@ const RatingBubble = ({ value, selectedValue, onClick }) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        padding: 0,
       }}
     >
       {value}
@@ -53,7 +57,7 @@ const RatingBubble = ({ value, selectedValue, onClick }) => {
 const RatingInputRow = ({ label, value, onChange }) => (
   <div style={{ marginBottom: '2.5rem', animation: 'fadeInUp 0.5s ease-out' }}>
     <label style={{ display: 'block', marginBottom: '1.25rem', fontSize: '1.15rem', fontWeight: 500, color: '#f8fafc' }}>{label}</label>
-    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+    <div style={{ display: 'flex', gap: '1.5%', justifyContent: 'space-between', width: '100%', flexWrap: 'nowrap' }}>
       {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
         <RatingBubble key={n} value={n} selectedValue={Number(value)} onClick={onChange} />
       ))}
@@ -101,6 +105,10 @@ const ResolutionCards = ({ value, onChange }) => {
 };
 
 export default function FeedbackPage() {
+  const router = useRouter();
+  const [lookupState, setLookupState] = useState('idle'); // 'idle', 'loading', 'pick', 'none'
+  const [pickList, setPickList] = useState([]);
+
   const [wizardStep, setWizardStep] = useState(0); // 0: UID, 1: Tech, 2: Service, 3: Overall, 4: Done, -1: Already
   const [uid, setUid] = useState('');
   const [uidInput, setUidInput] = useState('');
@@ -110,6 +118,48 @@ export default function FeedbackPage() {
   const [answers, setAnswers] = useState(initialAnswers);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+
+  // Auto-lookup by phone if Interakt handed one off in the URL
+  useEffect(() => {
+    if (!router.isReady) return;
+    const phone = router.query.phone;
+    if (!phone) {
+      setLookupState('idle');
+      return;
+    }
+    setLookupState('loading');
+    (async () => {
+      try {
+        const res = await fetch('/api/feedback/lookup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone }),
+        });
+        const data = await res.json();
+        if (!data.success || !data.complaints || data.complaints.length === 0) {
+          setLookupState('none');
+          return;
+        }
+        if (data.complaints.length === 1) {
+          setUid(data.complaints[0].uid);
+          setLookupState('idle');
+          setWizardStep(1); // Skip UID entry
+          return;
+        }
+        setPickList(data.complaints);
+        setLookupState('pick');
+      } catch (err) {
+        console.error(err);
+        setLookupState('idle'); // fall back to manual entry
+      }
+    })();
+  }, [router.isReady, router.query.phone]);
+
+  function selectFromPickList(pickedUid) {
+    setUid(pickedUid);
+    setLookupState('idle');
+    setWizardStep(1);
+  }
 
   // Styles injection for animations
   useEffect(() => {
@@ -275,8 +325,60 @@ export default function FeedbackPage() {
 
         <div className="wizard-card">
           
+          {lookupState === 'loading' && (
+            <div style={{ textAlign: 'center', padding: '3rem 0', animation: 'fadeInUp 0.5s' }}>
+              <div style={{ width: '50px', height: '50px', margin: '0 auto 1.5rem', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+              <h2 style={{ color: '#f8fafc', margin: '0 0 1rem 0' }}>Looking up your service request...</h2>
+              <p style={{ color: '#94a3b8' }}>Please wait a moment while we find your details.</p>
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            </div>
+          )}
+
+          {lookupState === 'none' && (
+            <div style={{ textAlign: 'center', padding: '2rem 0', animation: 'fadeInUp 0.5s' }}>
+              <h2 style={{ fontSize: '2rem', margin: '0 0 1rem 0', color: '#f8fafc' }}>No Requests Found</h2>
+              <p style={{ color: '#94a3b8', fontSize: '1.1rem', lineHeight: '1.6', marginBottom: '2rem' }}>
+                We couldn't find a completed service request on file for your WhatsApp number. If you believe this is incorrect, or you're using a different number, you can enter your Service UID manually instead.
+              </p>
+              <button onClick={() => setLookupState('idle')} className="nav-btn nav-btn-primary" style={{ padding: '1rem 2rem', fontSize: '1.1rem' }}>
+                Enter Service UID manually
+              </button>
+            </div>
+          )}
+
+          {lookupState === 'pick' && (
+            <div style={{ animation: 'fadeInUp 0.5s' }}>
+              <h2 style={{ fontSize: '1.8rem', margin: '0 0 0.5rem 0', color: '#f8fafc' }}>Select Service Request</h2>
+              <p style={{ color: '#94a3b8', marginBottom: '2rem' }}>We found more than one service request on file for your number. Which one would you like to rate?</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {pickList.map((c) => (
+                  <button
+                    key={c.uid}
+                    onClick={() => selectFromPickList(c.uid)}
+                    style={{
+                      padding: '1.25rem',
+                      borderRadius: '12px',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      background: 'rgba(255,255,255,0.03)',
+                      color: '#f8fafc',
+                      fontSize: '1.1rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      textAlign: 'left',
+                    }}
+                    onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                    onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                  >
+                    <strong style={{ color: '#60a5fa', display: 'block', marginBottom: '0.25rem' }}>{c.uid}</strong>
+                    <span style={{ fontSize: '0.9rem', color: '#cbd5e1' }}>{c.productgroup} {c.model ? `(${c.model})` : ''} — {c.date}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* STEP 0: UID ENTRY */}
-          {wizardStep === 0 && (
+          {lookupState === 'idle' && wizardStep === 0 && (
             <form onSubmit={handleUidSubmit}>
               <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                 <h1 style={{ fontSize: '2.5rem', margin: '0 0 1rem 0', background: 'linear-gradient(to right, #60a5fa, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
@@ -308,7 +410,7 @@ export default function FeedbackPage() {
           )}
 
           {/* ALREADY SUBMITTED */}
-          {wizardStep === -1 && (
+          {lookupState === 'idle' && wizardStep === -1 && (
             <div style={{ textAlign: 'center' }}>
               <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
                 <span style={{ fontSize: '2.5rem' }}>✓</span>
@@ -321,7 +423,7 @@ export default function FeedbackPage() {
           )}
 
           {/* STEP 1: TECHNICIAN */}
-          {wizardStep === 1 && (
+          {lookupState === 'idle' && wizardStep === 1 && (
             <div style={{ animation: 'fadeInUp 0.5s' }}>
               <h2 style={{ fontSize: '1.8rem', margin: '0 0 0.5rem 0', color: '#f8fafc' }}>Technician Review</h2>
               <p style={{ color: '#94a3b8', marginBottom: '2.5rem' }}>How would you rate the technician who visited you?</p>
@@ -338,7 +440,7 @@ export default function FeedbackPage() {
           )}
 
           {/* STEP 2: SERVICE & RESOLUTION */}
-          {wizardStep === 2 && (
+          {lookupState === 'idle' && wizardStep === 2 && (
             <div style={{ animation: 'fadeInUp 0.5s' }}>
               <h2 style={{ fontSize: '1.8rem', margin: '0 0 0.5rem 0', color: '#f8fafc' }}>Service Details</h2>
               <p style={{ color: '#94a3b8', marginBottom: '2.5rem' }}>Tell us about the actual service provided.</p>
@@ -372,7 +474,7 @@ export default function FeedbackPage() {
           )}
 
           {/* STEP 3: OVERALL & COMMENTS */}
-          {wizardStep === 3 && (
+          {lookupState === 'idle' && wizardStep === 3 && (
             <div style={{ animation: 'fadeInUp 0.5s' }}>
               <h2 style={{ fontSize: '1.8rem', margin: '0 0 0.5rem 0', color: '#f8fafc' }}>Overall Experience</h2>
               <p style={{ color: '#94a3b8', marginBottom: '2.5rem' }}>Almost done! Let us know your final thoughts.</p>
@@ -422,7 +524,7 @@ export default function FeedbackPage() {
           )}
 
           {/* DONE STEP */}
-          {wizardStep === 4 && (
+          {lookupState === 'idle' && wizardStep === 4 && (
             <div style={{ textAlign: 'center', padding: '2rem 0' }}>
               <svg style={{ width: '100px', height: '100px', margin: '0 auto 2rem auto', overflow: 'visible' }} viewBox="0 0 52 52">
                 <circle cx="26" cy="26" r="25" fill="none" stroke="#10b981" strokeWidth="2" />
