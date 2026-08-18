@@ -36,12 +36,16 @@ export default function ComplaintForm() {
   const [declineConfirm, setDeclineConfirm] = useState(false);
   const [finalResult, setFinalResult] = useState(null);
   
-  const productGroups = ['Television', 'Refrigerator', 'Washing Machine', 'Air Conditioner'];
+  const productGroups = ['Air Conditioner', 'Big cooler', 'Chest Freezers', 'Chillers', 'Dish washer', 'Refrigerator', 'TV', 'Washing Machine'];
   const models = {
-    'Television': ['GLORIA 32', 'EVOQ 43', 'LUMINA 55', 'TITAN 65', 'CINEMA 75'],
-    'Refrigerator': ['FROST 200L', 'FROST 300L', 'ICEBOX 500L'],
-    'Washing Machine': ['WASH 6KG', 'WASH 8KG', 'CLEAN 10KG'],
-    'Air Conditioner': ['COOL 1T', 'COOL 1.5T', 'CHILL 2T']
+    'Air Conditioner': ['1.5 Ton Split AC', '1.5 Ton Window AC', '2 Ton Split AC', '2 Ton Window AC'],
+    'Big cooler': ['Storm100'],
+    'Chest Freezers': ['IMCF150', 'IMCF200'],
+    'Chillers': ['IMSC300W', 'IMSC400B'],
+    'Dish washer': ['IDW13PS', 'IDW15PS'],
+    'Refrigerator': ['IRF138', 'IRF200', 'IRF220', 'IRF250', 'IRF290', 'IRF335', 'IRF420', 'IRF470', 'IRF520SS', 'IRF550SBSS'],
+    'TV': ['100"', '50"', '55"', '58"', '60"', '65"', '70"', '75"', '85"'],
+    'Washing Machine': ['WM0500TPW', 'WM0600FW', 'WM0700TMG', 'WM0700TPW', 'WM0750FS', 'WM0800FS', 'WM0800TMG', 'WM1000FS', 'WM1000TMG', 'WM1000TPW', 'WM1200TMG', 'WM1400TWG', 'WM4202', 'WM4203', 'WM4204', 'WM4205', 'WM4214', 'WM4215', 'WM4218']
   };
 
   useEffect(() => {
