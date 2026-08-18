@@ -113,7 +113,7 @@ export default function ComplaintForm() {
       const res = await fetch('/api/complaint/warranty-check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category: formData.productgroup, dop: formData.dop })
+        body: JSON.stringify({ category: formData.productgroup, model: formData.model, dop: formData.dop })
       });
       const data = await res.json();
       
