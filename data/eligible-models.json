@@ -10,19 +10,19 @@
     },
     "Chest Freezers": {
       "models": ["IMCF150", "IMCF200"],
-      "charge": 150
+      "charge": 250
     },
     "Chillers": {
       "models": ["IMSC300W", "IMSC400B"],
-      "charge": 150
+      "charge": 250
     },
     "Dish washer": {
       "models": ["IDW13PS", "IDW15PS"],
-      "charge": 150
+      "charge": 250
     },
     "Refrigerator": {
       "models": ["IRF138", "IRF200", "IRF220", "IRF250", "IRF290", "IRF335", "IRF420", "IRF470", "IRF520SS", "IRF550SBSS"],
-      "charge": 200
+      "charge": 250
     },
     "TV": {
       "models": ["100\"", "50\"", "55\"", "58\"", "60\"", "65\"", "70\"", "75\"", "85\""],
@@ -30,7 +30,7 @@
     },
     "Washing Machine": {
       "models": ["WM0500TPW", "WM0600FW", "WM0700TMG", "WM0700TPW", "WM0750FS", "WM0800FS", "WM0800TMG", "WM1000FS", "WM1000TMG", "WM1000TPW", "WM1200TMG", "WM1400TWG", "WM4202", "WM4203", "WM4204", "WM4205", "WM4214", "WM4215", "WM4218"],
-      "charge": 180
+      "charge": 150
     }
   }
 }
