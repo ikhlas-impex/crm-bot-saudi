@@ -273,7 +273,7 @@ export default function ComplaintsPage() {
                 </td>
                 <td style={{ padding: '1rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{c.date}</td>
                 <td style={{ padding: '1rem' }}>
-                  <div style={{ fontWeight: 500 }}>{c.customername}</div>
+                  <div style={{ fontWeight: 500 }}><ComplaintText text={c.customername} /></div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>{c.phone}</div>
                 </td>
                 <td style={{ padding: '1rem' }}>
@@ -443,7 +443,7 @@ export default function ComplaintsPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
               <div>
                 <h3 style={{ color: '#a5b4fc', fontSize: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem', marginBottom: '1rem' }}>Customer Info</h3>
-                <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', display: 'inline-block' }}>Name:</strong> {selectedComplaintDetails.customername}</p>
+                <div style={{ margin: '0.5rem 0', fontSize: '0.875rem', display: 'flex' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', flexShrink: 0 }}>Name:</strong> <div style={{ flex: 1 }}><ComplaintText text={selectedComplaintDetails.customername} /></div></div>
                 <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', display: 'inline-block' }}>Phone:</strong> {selectedComplaintDetails.phone}</p>
                 <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', display: 'inline-block' }}>Alt Mobile:</strong> {selectedComplaintDetails.altmobile || 'N/A'}</p>
                 <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', display: 'inline-block' }}>Address:</strong> {selectedComplaintDetails.address || 'N/A'}</p>
