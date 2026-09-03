@@ -208,10 +208,20 @@ export default function ComplaintsPage() {
     router.push('/admin/login');
   }
 
+  // Filter out cancelled / non-UID complaints from pending & follow-up tabs
+  const activeComplaints = complaints.filter((c) => {
+    if (filter === 'PENDING_REVIEW' || filter === 'PENDING_PAYMENT_VERIFICATION' || filter === 'FOLLOW_UP') {
+      if (!c.uid || c.status === 'OW_CANCELLED' || (c.status && c.status.toLowerCase().includes('cancelled'))) {
+        return false;
+      }
+    }
+    return true;
+  });
+
   // Pagination Math
-  const totalPages = Math.ceil(complaints.length / pageSize) || 1;
+  const totalPages = Math.ceil(activeComplaints.length / pageSize) || 1;
   const startIndex = (currentPage - 1) * pageSize;
-  const displayedComplaints = complaints.slice(startIndex, startIndex + pageSize);
+  const displayedComplaints = activeComplaints.slice(startIndex, startIndex + pageSize);
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
@@ -475,17 +485,17 @@ export default function ComplaintsPage() {
                 </td>
               </tr>
             ))}
-            {!loading && complaints.length === 0 && (
+            {!loading && activeComplaints.length === 0 && (
               <tr><td colSpan={9} style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--text-secondary)' }}>No complaints found matching this filter.</td></tr>
             )}
           </tbody>
         </table>
 
         {/* Pagination Bar */}
-        {complaints.length > 0 && (
+        {activeComplaints.length > 0 && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', borderTop: '1px solid rgba(255,255,255,0.05)', flexWrap: 'wrap', gap: '1rem' }}>
             <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-              Showing <strong style={{ color: 'white' }}>{startIndex + 1}</strong> to <strong style={{ color: 'white' }}>{Math.min(startIndex + pageSize, complaints.length)}</strong> of <strong style={{ color: 'white' }}>{complaints.length}</strong> complaints
+              Showing <strong style={{ color: 'white' }}>{startIndex + 1}</strong> to <strong style={{ color: 'white' }}>{Math.min(startIndex + pageSize, activeComplaints.length)}</strong> of <strong style={{ color: 'white' }}>{activeComplaints.length}</strong> complaints
             </div>
             
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
