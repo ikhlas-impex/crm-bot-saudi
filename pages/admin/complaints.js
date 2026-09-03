@@ -362,7 +362,9 @@ export default function ComplaintsPage() {
                   </button>
                 </td>
                 <td style={{ padding: '1rem' }}>
-                  {!c.reviewstatus ? (
+                  {!c.uid ? (
+                    <span style={{ color: '#666', fontSize: '0.75rem' }}>N/A</span>
+                  ) : !c.reviewstatus ? (
                     <span style={{ color: '#999', fontSize: '0.75rem' }}>Pending</span>
                   ) : c.reviewstatus === 'CHECKED' ? (
                     <span style={{ color: '#10b981', fontSize: '0.75rem', fontWeight: 'bold' }}>✓ Checked</span>
@@ -385,7 +387,9 @@ export default function ComplaintsPage() {
                   )}
                 </td>
                 <td style={{ padding: '1rem' }}>
-                  {filter === 'PENDING_REVIEW' ? (
+                  {!c.uid ? (
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontStyle: 'italic' }}>No action required</span>
+                  ) : filter === 'PENDING_REVIEW' ? (
                     crossingUid === c.uid ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minWidth: '180px' }}>
                         <textarea
