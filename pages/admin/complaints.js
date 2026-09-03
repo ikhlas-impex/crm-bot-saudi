@@ -2,15 +2,19 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
-import ComplaintText from '../../components/ComplaintText';
+import ComplaintText, { batchTranslate } from '../../components/ComplaintText';
 
 const N8N_BASE = 'https://n8n.srv1623198.hstgr.cloud/webhook';
+
+// Client-side SWR cache store (stale-while-revalidate)
+const complaintsCache = new Map();
 
 export default function ComplaintsPage() {
   const router = useRouter();
   const [complaints, setComplaints] = useState([]);
   const [filter, setFilter] = useState('PENDING_PAYMENT_VERIFICATION');
   const [loading, setLoading] = useState(false);
+  const [isRevalidating, setIsRevalidating] = useState(false);
   const [error, setError] = useState('');
   const [actioningUid, setActioningUid] = useState(null);
   const [crossingUid, setCrossingUid] = useState(null);
@@ -18,16 +22,44 @@ export default function ComplaintsPage() {
   const [selectedProofsComplaint, setSelectedProofsComplaint] = useState(null);
   const [selectedComplaintDetails, setSelectedComplaintDetails] = useState(null);
 
+  // Pagination state (20 items per page)
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
+
   const getSessionId = () =>
     typeof window !== 'undefined' ? sessionStorage.getItem('sessionid') : null;
 
-  const loadComplaints = useCallback(async () => {
+  // Trigger batch translation for all loaded complaints in 1 single HTTP request
+  const triggerBatchTranslation = (items) => {
+    if (!Array.isArray(items)) return;
+    const allTexts = [];
+    items.forEach((c) => {
+      if (c.complaintdetails) allTexts.push(c.complaintdetails);
+      if (c.customername) allTexts.push(c.customername);
+    });
+    batchTranslate(allTexts);
+  };
+
+  const loadComplaints = useCallback(async (isManualRefresh = false) => {
     const sessionid = getSessionId();
     if (!sessionid) {
       router.push('/admin/login');
       return;
     }
-    setLoading(true);
+
+    // 1. Instant Cache Load (SWR pattern: show cached data instantly)
+    const cacheKey = filter;
+    const cached = complaintsCache.get(cacheKey);
+    if (cached && !isManualRefresh) {
+      setComplaints(cached);
+      triggerBatchTranslation(cached);
+      setLoading(false);
+      setIsRevalidating(true);
+    } else {
+      setLoading(true);
+      setIsRevalidating(false);
+    }
+
     setError('');
     
     try {
@@ -53,12 +85,16 @@ export default function ComplaintsPage() {
           return;
         }
         setError(data.message || 'Failed to load complaints');
-        setComplaints([]);
+        if (!cached) setComplaints([]);
         return;
       }
-      setComplaints(data.complaints || []);
       
-      // If arriving from the "Follow Up" button or URL with a specific uid, scroll to it
+      const newComplaints = data.complaints || [];
+      complaintsCache.set(cacheKey, newComplaints);
+      setComplaints(newComplaints);
+      triggerBatchTranslation(newComplaints);
+      
+      // Auto-scroll logic for follow-up
       if (filter === 'FOLLOW_UP' && router.query.uid) {
         setTimeout(() => {
           const el = document.getElementById(`row-${router.query.uid}`);
@@ -67,16 +103,18 @@ export default function ComplaintsPage() {
       }
     } catch (err) {
       console.error(err);
-      setError('Network error loading complaints');
+      if (!cached) setError('Network error loading complaints');
     } finally {
       setLoading(false);
+      setIsRevalidating(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, router.query.uid]);
 
   useEffect(() => {
+    setCurrentPage(1); // Reset to page 1 on filter change
     loadComplaints();
-  }, [loadComplaints]);
+  }, [loadComplaints, filter]);
 
   useEffect(() => {
     if (router.query.uid && filter !== 'FOLLOW_UP') {
@@ -99,7 +137,7 @@ export default function ComplaintsPage() {
         return;
       }
       if (data.warning) alert(data.warning);
-      await loadComplaints();
+      await loadComplaints(true);
     } catch (err) {
       console.error(err);
       alert('Network error - action may not have completed');
@@ -118,7 +156,7 @@ export default function ComplaintsPage() {
       });
       const data = await res.json();
       if (!data.success) { alert(data.message || 'Action failed'); return; }
-      await loadComplaints();
+      await loadComplaints(true);
     } catch (err) {
       console.error(err);
       alert('Network error');
@@ -147,7 +185,7 @@ export default function ComplaintsPage() {
       const data = await res.json();
       if (!data.success) { alert(data.message || 'Action failed'); return; }
       setCrossingUid(null);
-      await loadComplaints();
+      await loadComplaints(true);
     } catch (err) {
       console.error(err);
       alert('Network error');
@@ -169,6 +207,11 @@ export default function ComplaintsPage() {
     sessionStorage.clear();
     router.push('/admin/login');
   }
+
+  // Pagination Math
+  const totalPages = Math.ceil(complaints.length / pageSize) || 1;
+  const startIndex = (currentPage - 1) * pageSize;
+  const displayedComplaints = complaints.slice(startIndex, startIndex + pageSize);
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
@@ -234,7 +277,13 @@ export default function ComplaintsPage() {
         
         <div style={{ flex: 1 }} />
         
-        <button className="btn btn-secondary" style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.875rem' }} onClick={loadComplaints}>
+        {isRevalidating && (
+          <span style={{ fontSize: '0.75rem', color: '#60a5fa', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div className="spinner" style={{ width: '12px', height: '12px', borderWidth: '2px' }} /> Updating...
+          </span>
+        )}
+
+        <button className="btn btn-secondary" style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.875rem' }} onClick={() => loadComplaints(true)}>
           Refresh ↻
         </button>
         <button className="btn btn-primary" style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.875rem', background: 'linear-gradient(to right, #10b981, #059669)', border: 'none', color: 'white' }} onClick={exportToExcel} disabled={complaints.length === 0}>
@@ -242,7 +291,7 @@ export default function ComplaintsPage() {
         </button>
       </div>
 
-      {loading && <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><div className="spinner" style={{width: '40px', height: '40px'}}/></div>}
+      {loading && complaints.length === 0 && <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><div className="spinner" style={{width: '40px', height: '40px'}}/></div>}
       {error && <div className="glass-panel" style={{ padding: '1rem', color: 'var(--error-color)', borderColor: 'rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.05)' }}>{error}</div>}
 
       <div className="glass-panel" style={{ overflowX: 'auto', padding: 0 }}>
@@ -261,8 +310,8 @@ export default function ComplaintsPage() {
             </tr>
           </thead>
           <tbody>
-            {complaints.map((c, idx) => (
-              <tr key={c.uid || `${c.phone}-${c.createdat}`} id={`row-${c.uid}`} style={{ borderBottom: idx === complaints.length - 1 ? 'none' : '1px solid rgba(255,255,255,0.05)', transition: 'background 0.2s', background: (filter === 'FOLLOW_UP' && router.query.uid === c.uid) ? 'rgba(245, 158, 11, 0.1)' : 'transparent', ':hover': { background: 'rgba(255,255,255,0.02)' } }}>
+            {displayedComplaints.map((c, idx) => (
+              <tr key={c.uid || `${c.phone}-${c.createdat}`} id={`row-${c.uid}`} style={{ borderBottom: idx === displayedComplaints.length - 1 ? 'none' : '1px solid rgba(255,255,255,0.05)', transition: 'background 0.2s', background: (filter === 'FOLLOW_UP' && router.query.uid === c.uid) ? 'rgba(245, 158, 11, 0.1)' : 'transparent' }}>
                 <td style={{ padding: '1rem', fontFamily: 'monospace', color: '#a5b4fc', fontSize: '0.875rem' }}>
                   <button 
                     onClick={() => setSelectedComplaintDetails(c)}
@@ -286,7 +335,7 @@ export default function ComplaintsPage() {
                       {c.paymentstatus || 'N/A'}
                     </span>
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{c.status.replace(/_/g, ' ')}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{c.status ? c.status.replace(/_/g, ' ') : 'N/A'}</div>
                 </td>
                 <td style={{ padding: '1rem' }}>
                   <div style={{ fontSize: '0.875rem', marginBottom: '0.5rem', maxWidth: '200px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }} title={c.complaintdetails}>
@@ -427,6 +476,39 @@ export default function ComplaintsPage() {
             )}
           </tbody>
         </table>
+
+        {/* Pagination Bar */}
+        {complaints.length > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', borderTop: '1px solid rgba(255,255,255,0.05)', flexWrap: 'wrap', gap: '1rem' }}>
+            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+              Showing <strong style={{ color: 'white' }}>{startIndex + 1}</strong> to <strong style={{ color: 'white' }}>{Math.min(startIndex + pageSize, complaints.length)}</strong> of <strong style={{ color: 'white' }}>{complaints.length}</strong> complaints
+            </div>
+            
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <button 
+                className="btn btn-secondary" 
+                style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', width: 'auto' }} 
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              >
+                ← Prev
+              </button>
+              
+              <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: '0 0.5rem' }}>
+                Page <strong style={{ color: 'white' }}>{currentPage}</strong> of <strong style={{ color: 'white' }}>{totalPages}</strong>
+              </span>
+
+              <button 
+                className="btn btn-secondary" 
+                style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', width: 'auto' }} 
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {selectedComplaintDetails && (
