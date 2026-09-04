@@ -203,8 +203,22 @@ export default function ComplaintForm() {
             </div>
             
             {eligibilityResult && !eligibilityResult.eligible && (
-              <div className="form-group" style={{ color: 'var(--error-color)', padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '8px' }}>
-                <strong>Not Eligible:</strong> Please hand this product to your nearest service center. We cannot process this online.
+              <div className="form-group" style={{ color: 'var(--error-color)', padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '8px', marginTop: '1rem' }}>
+                <p style={{ margin: '0 0 0.5rem 0' }}>
+                  <strong>Not Eligible:</strong> Please hand this product to your nearest service center. We cannot process this online.
+                </p>
+                <p style={{ margin: '0 0 1rem 0', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                  Need assistance? Contact our support at <strong>+966 54 146 3161</strong>.
+                </p>
+                <a
+                  href="https://wa.me/966541463161"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-primary"
+                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', textDecoration: 'none', background: '#25D366', color: '#ffffff', width: 'auto', border: 'none' }}
+                >
+                  💬 Return to WhatsApp (+966 54 146 3161)
+                </a>
               </div>
             )}
             
@@ -405,7 +419,20 @@ export default function ComplaintForm() {
               <div style={{fontSize: '4rem', marginBottom: '1rem'}}>✖️</div>
               <h2>Request Cancelled</h2>
               <p>Your request has been logged as cancelled.</p>
-              <p>You may now close this window.</p>
+              <p style={{ marginTop: '1rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                Need assistance? Contact our support team at <strong>+966 54 146 3161</strong>.
+              </p>
+              <div style={{ marginTop: '1.5rem' }}>
+                <a
+                  href="https://wa.me/966541463161"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-primary"
+                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', textDecoration: 'none', background: '#25D366', color: '#ffffff', border: 'none' }}
+                >
+                  💬 Return to WhatsApp (+966 54 146 3161)
+                </a>
+              </div>
             </div>
           );
         }
@@ -416,6 +443,20 @@ export default function ComplaintForm() {
               <h2>Payment Under Review</h2>
               <p>Thank you. Your payment proof has been submitted successfully.</p>
               <p>Our team will verify the payment and send your Service UID via WhatsApp shortly.</p>
+              <p style={{ marginTop: '1rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                For updates or assistance, contact <strong>+966 54 146 3161</strong>.
+              </p>
+              <div style={{ marginTop: '1.5rem' }}>
+                <a
+                  href="https://wa.me/966541463161"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-primary"
+                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', textDecoration: 'none', background: '#25D366', color: '#ffffff', border: 'none' }}
+                >
+                  💬 Return to WhatsApp (+966 54 146 3161)
+                </a>
+              </div>
             </div>
           );
         }
@@ -429,6 +470,20 @@ export default function ComplaintForm() {
               <h2 style={{color: 'var(--success-color)', margin: '0.5rem 0 0'}}>{finalResult?.uid}</h2>
             </div>
             <p>You will receive a confirmation message on WhatsApp.</p>
+            <p style={{ marginTop: '1rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+              Support contact: <strong>+966 54 146 3161</strong>
+            </p>
+            <div style={{ marginTop: '1.5rem' }}>
+              <a
+                href="https://wa.me/966541463161"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-primary"
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', textDecoration: 'none', background: '#25D366', color: '#ffffff', border: 'none' }}
+              >
+                💬 Return to WhatsApp (+966 54 146 3161)
+              </a>
+            </div>
           </div>
         );
       default:

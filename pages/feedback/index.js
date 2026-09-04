@@ -249,7 +249,7 @@ export default function FeedbackPage() {
         const next = attempts + 1;
         setAttempts(next);
         if (next >= MAX_UID_ATTEMPTS) {
-          setUidError('We could not find that Service UID after several attempts. Please contact IMPEX Customer Care for assistance.');
+          setUidError('We could not find that Service UID after several attempts. Please contact IMPEX Customer Care at +966 54 146 3161 for assistance.');
         } else {
           setUidError(data.message);
         }
@@ -340,9 +340,20 @@ export default function FeedbackPage() {
               <p style={{ color: '#94a3b8', fontSize: '1.1rem', lineHeight: '1.6', marginBottom: '2rem' }}>
                 We couldn't find a completed service request on file for your WhatsApp number. If you believe this is incorrect, or you're using a different number, you can enter your Service UID manually instead.
               </p>
-              <button onClick={() => setLookupState('idle')} className="nav-btn nav-btn-primary" style={{ padding: '1rem 2rem', fontSize: '1.1rem' }}>
-                Enter Service UID manually
-              </button>
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button onClick={() => setLookupState('idle')} className="nav-btn nav-btn-primary" style={{ padding: '1rem 2rem', fontSize: '1.1rem' }}>
+                  Enter Service UID manually
+                </button>
+                <a
+                  href="https://wa.me/966541463161"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="nav-btn"
+                  style={{ padding: '1rem 2rem', fontSize: '1.1rem', background: '#25D366', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+                >
+                  💬 Return to WhatsApp (+966 54 146 3161)
+                </a>
+              </div>
             </div>
           )}
 
@@ -406,6 +417,20 @@ export default function FeedbackPage() {
               <button type="submit" className="nav-btn nav-btn-primary" style={{ width: '100%', padding: '1rem', fontSize: '1.1rem' }} disabled={checking || attemptsExhausted}>
                 {checking ? 'Verifying...' : 'Begin Feedback'}
               </button>
+
+              {attemptsExhausted && (
+                <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+                  <a
+                    href="https://wa.me/966541463161"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="nav-btn"
+                    style={{ padding: '0.85rem 1.5rem', fontSize: '1rem', background: '#25D366', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+                  >
+                    💬 Contact Customer Care (+966 54 146 3161)
+                  </a>
+                </div>
+              )}
             </form>
           )}
 
@@ -416,9 +441,18 @@ export default function FeedbackPage() {
                 <span style={{ fontSize: '2.5rem' }}>✓</span>
               </div>
               <h2 style={{ fontSize: '2rem', margin: '0 0 1rem 0', color: '#f8fafc' }}>Feedback Received</h2>
-              <p style={{ color: '#94a3b8', fontSize: '1.1rem', lineHeight: '1.6' }}>
+              <p style={{ color: '#94a3b8', fontSize: '1.1rem', lineHeight: '1.6', marginBottom: '2rem' }}>
                 Feedback for Service UID <strong>{uid}</strong> has already been received. Thank you for taking the time to share your thoughts with us.
               </p>
+              <a
+                href="https://wa.me/966541463161"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="nav-btn"
+                style={{ padding: '1rem 2rem', fontSize: '1.1rem', background: '#25D366', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+              >
+                💬 Return to WhatsApp (+966 54 146 3161)
+              </a>
             </div>
           )}
 
@@ -534,9 +568,18 @@ export default function FeedbackPage() {
               <p style={{ color: '#94a3b8', fontSize: '1.1rem', lineHeight: '1.6', marginBottom: '0.5rem' }}>
                 Your feedback has been successfully recorded for Service UID: <strong>{uid}</strong>.
               </p>
-              <p style={{ color: '#94a3b8', fontSize: '1.1rem', lineHeight: '1.6' }}>
+              <p style={{ color: '#94a3b8', fontSize: '1.1rem', lineHeight: '1.6', marginBottom: '2rem' }}>
                 Your feedback helps us improve our products and service quality. Have a great day!
               </p>
+              <a
+                href="https://wa.me/966541463161"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="nav-btn"
+                style={{ padding: '1rem 2rem', fontSize: '1.1rem', background: '#25D366', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+              >
+                💬 Return to WhatsApp (+966 54 146 3161)
+              </a>
             </div>
           )}
 
