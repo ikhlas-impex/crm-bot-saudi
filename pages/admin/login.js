@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import { useLanguage } from '@/lib/LanguageContext';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 export default function AdminLogin() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -21,7 +24,7 @@ export default function AdminLogin() {
       });
       const data = await res.json();
       if (!data.success) {
-        setError(data.message || 'Login failed');
+        setError(data.message || t('common.error'));
         return;
       }
       sessionStorage.setItem('sessionid', data.sessionid);
@@ -29,7 +32,7 @@ export default function AdminLogin() {
       sessionStorage.setItem('servicecentre', data.servicecentre || '');
       router.push('/admin');
     } catch (err) {
-      setError('Network error');
+      setError(t('common.error'));
     } finally {
       setLoading(false);
     }
@@ -38,10 +41,13 @@ export default function AdminLogin() {
   return (
     <div className="container" style={{ display: 'flex', alignItems: 'center', minHeight: '100vh' }}>
       <Head>
-        <title>Impex - Admin Login</title>
+        <title>Impex - {t('admin.loginTitle')}</title>
       </Head>
       <div className="glass-panel" style={{ width: '100%', maxWidth: '400px', margin: '0 auto', animation: 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1)' }}>
-        <h1 style={{ fontSize: '1.75rem', marginBottom: '2rem' }}>Impex Admin</h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <h1 style={{ fontSize: '1.5rem', margin: 0 }}>Impex Admin</h1>
+          <LanguageSwitcher />
+        </div>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label className="form-label">Username</label>
@@ -67,10 +73,11 @@ export default function AdminLogin() {
           </div>
           {error && <p style={{ color: 'var(--error-color)', fontSize: '0.875rem' }}>{error}</p>}
           <button type="submit" className="btn btn-primary" disabled={loading} style={{ marginTop: '1rem' }}>
-            {loading ? <div className="spinner" /> : 'Log in'}
+            {loading ? <div className="spinner" /> : t('admin.loginBtn')}
           </button>
         </form>
       </div>
     </div>
   );
 }
+

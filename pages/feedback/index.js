@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import { useLanguage } from '@/lib/LanguageContext';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 const MAX_UID_ATTEMPTS = 3;
 
@@ -54,33 +56,42 @@ const RatingBubble = ({ value, selectedValue, onClick }) => {
   );
 };
 
-const RatingInputRow = ({ label, value, onChange }) => (
-  <div style={{ marginBottom: '2.5rem', animation: 'fadeInUp 0.5s ease-out' }}>
-    <label style={{ display: 'block', marginBottom: '1.25rem', fontSize: '1.15rem', fontWeight: 500, color: '#f8fafc' }}>{label}</label>
-    <div style={{ display: 'flex', gap: '1.5%', justifyContent: 'space-between', width: '100%', flexWrap: 'nowrap' }}>
-      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
-        <RatingBubble key={n} value={n} selectedValue={Number(value)} onClick={onChange} />
-      ))}
+const RatingInputRow = ({ label, value, onChange }) => {
+  const { t } = useLanguage();
+  return (
+    <div style={{ marginBottom: '2.5rem', animation: 'fadeInUp 0.5s ease-out' }}>
+      <label style={{ display: 'block', marginBottom: '1.25rem', fontSize: '1.15rem', fontWeight: 500, color: '#f8fafc' }}>{label}</label>
+      <div style={{ display: 'flex', gap: '1.5%', justifyContent: 'space-between', width: '100%', flexWrap: 'nowrap' }}>
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+          <RatingBubble key={n} value={n} selectedValue={Number(value)} onClick={onChange} />
+        ))}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.75rem', color: '#64748b', fontSize: '0.85rem', fontWeight: 500 }}>
+        <span>{t('feedback.veryPoor')}</span>
+        <span>{t('feedback.excellent')}</span>
+      </div>
     </div>
-    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.75rem', color: '#64748b', fontSize: '0.85rem', fontWeight: 500 }}>
-      <span>Very Poor (1)</span>
-      <span>Excellent (10)</span>
-    </div>
-  </div>
-);
+  );
+};
 
 const ResolutionCards = ({ value, onChange }) => {
-  const options = ['Completely Resolved', 'Partially Resolved', 'Not Resolved'];
+  const { t } = useLanguage();
+  const optionsMap = [
+    { key: 'Completely Resolved', label: t('feedback.resCompletely') },
+    { key: 'Partially Resolved', label: t('feedback.resPartially') },
+    { key: 'Not Resolved', label: t('feedback.resNot') },
+  ];
+
   return (
     <div style={{ display: 'flex', gap: '1rem', flexDirection: 'column', animation: 'fadeInUp 0.5s ease-out' }}>
-      {options.map(opt => {
-        const isSelected = value === opt;
-        const baseColor = opt === 'Not Resolved' ? '#ef4444' : opt === 'Partially Resolved' ? '#f59e0b' : '#10b981';
+      {optionsMap.map(({ key: optKey, label }) => {
+        const isSelected = value === optKey;
+        const baseColor = optKey === 'Not Resolved' ? '#ef4444' : optKey === 'Partially Resolved' ? '#f59e0b' : '#10b981';
         return (
           <button
-            key={opt}
+            key={optKey}
             type="button"
-            onClick={() => onChange(opt)}
+            onClick={() => onChange(optKey)}
             style={{
               padding: '1.25rem',
               borderRadius: '12px',
@@ -91,21 +102,22 @@ const ResolutionCards = ({ value, onChange }) => {
               fontWeight: 600,
               cursor: 'pointer',
               transition: 'all 0.3s ease',
-              textAlign: 'left',
+              textAlign: 'start',
               boxShadow: isSelected ? `0 4px 15px ${baseColor}33` : 'none',
               transform: isSelected ? 'translateY(-2px)' : 'translateY(0)',
             }}
           >
-            {opt}
+            {label}
           </button>
-        )
+        );
       })}
     </div>
-  )
+  );
 };
 
 export default function FeedbackPage() {
   const router = useRouter();
+  const { t, isRtl } = useLanguage();
   const [lookupState, setLookupState] = useState('idle'); // 'idle', 'loading', 'pick', 'none'
   const [pickList, setPickList] = useState([]);
 
@@ -242,14 +254,14 @@ export default function FeedbackPage() {
       const data = await res.json();
 
       if (!data.success) {
-        setUidError('Something went wrong checking that UID. Please try again.');
+        setUidError(t('common.error'));
         return;
       }
       if (!data.valid) {
         const next = attempts + 1;
         setAttempts(next);
         if (next >= MAX_UID_ATTEMPTS) {
-          setUidError('We could not find that Service UID after several attempts. Please contact IMPEX Customer Care at +966 54 146 3161 for assistance.');
+          setUidError(t('common.contactSupport'));
         } else {
           setUidError(data.message);
         }
@@ -264,7 +276,7 @@ export default function FeedbackPage() {
       setWizardStep(1);
     } catch (err) {
       console.error(err);
-      setUidError('Network error - please try again.');
+      setUidError(t('common.error'));
     } finally {
       setChecking(false);
     }
@@ -285,13 +297,13 @@ export default function FeedbackPage() {
       });
       const data = await res.json();
       if (!data.success) {
-        setSubmitError(data.message || 'Submission failed - please try again.');
+        setSubmitError(data.message || t('common.error'));
         return;
       }
       setWizardStep(4);
     } catch (err) {
       console.error(err);
-      setSubmitError('Network error - please try again.');
+      setSubmitError(t('common.error'));
     } finally {
       setSubmitting(false);
     }
@@ -307,14 +319,21 @@ export default function FeedbackPage() {
   const canProceedStep3 = answers.q6_overall_experience && answers.q7_product_satisfaction && answers.q9_recommendation && (!lowOverallScore || answers.q8_comments.trim() !== '');
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem', fontFamily: 'Inter, sans-serif' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem', fontFamily: "'Outfit', sans-serif" }}>
       <Head>
-        <title>Impex - Service Feedback</title>
+        <title>Impex - {t('feedback.title')}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 
       <div style={{ width: '100%', maxWidth: '640px' }}>
         
+        <div className="page-top-panel">
+          <h1 style={{ fontSize: '1.75rem', margin: 0, background: 'linear-gradient(to right, #60a5fa, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            {t('feedback.title')}
+          </h1>
+          <LanguageSwitcher />
+        </div>
+
         {wizardStep > 0 && wizardStep < 4 && (
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', animation: 'fadeInUp 0.6s' }}>
             {[1, 2, 3].map(step => (
@@ -328,21 +347,21 @@ export default function FeedbackPage() {
           {lookupState === 'loading' && (
             <div style={{ textAlign: 'center', padding: '3rem 0', animation: 'fadeInUp 0.5s' }}>
               <div style={{ width: '50px', height: '50px', margin: '0 auto 1.5rem', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-              <h2 style={{ color: '#f8fafc', margin: '0 0 1rem 0' }}>Looking up your service request...</h2>
-              <p style={{ color: '#94a3b8' }}>Please wait a moment while we find your details.</p>
+              <h2 style={{ color: '#f8fafc', margin: '0 0 1rem 0' }}>{t('feedback.lookingUp')}</h2>
+              <p style={{ color: '#94a3b8' }}>{t('feedback.lookingUpWait')}</p>
               <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
           )}
 
           {lookupState === 'none' && (
             <div style={{ textAlign: 'center', padding: '2rem 0', animation: 'fadeInUp 0.5s' }}>
-              <h2 style={{ fontSize: '2rem', margin: '0 0 1rem 0', color: '#f8fafc' }}>No Requests Found</h2>
+              <h2 style={{ fontSize: '2rem', margin: '0 0 1rem 0', color: '#f8fafc' }}>{t('feedback.noRequestsTitle')}</h2>
               <p style={{ color: '#94a3b8', fontSize: '1.1rem', lineHeight: '1.6', marginBottom: '2rem' }}>
-                We couldn't find a completed service request on file for your WhatsApp number. If you believe this is incorrect, or you're using a different number, you can enter your Service UID manually instead.
+                {t('feedback.noRequestsMsg')}
               </p>
               <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
                 <button onClick={() => setLookupState('idle')} className="nav-btn nav-btn-primary" style={{ padding: '1rem 2rem', fontSize: '1.1rem' }}>
-                  Enter Service UID manually
+                  {t('feedback.enterManually')}
                 </button>
                 <a
                   href="https://wa.me/966541463161"
@@ -351,7 +370,7 @@ export default function FeedbackPage() {
                   className="nav-btn"
                   style={{ padding: '1rem 2rem', fontSize: '1.1rem', background: '#25D366', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
                 >
-                  💬 Return to WhatsApp (+966 54 146 3161)
+                  💬 {t('common.returnToWhatsapp')}
                 </a>
               </div>
             </div>
@@ -359,8 +378,8 @@ export default function FeedbackPage() {
 
           {lookupState === 'pick' && (
             <div style={{ animation: 'fadeInUp 0.5s' }}>
-              <h2 style={{ fontSize: '1.8rem', margin: '0 0 0.5rem 0', color: '#f8fafc' }}>Select Service Request</h2>
-              <p style={{ color: '#94a3b8', marginBottom: '2rem' }}>We found more than one service request on file for your number. Which one would you like to rate?</p>
+              <h2 style={{ fontSize: '1.8rem', margin: '0 0 0.5rem 0', color: '#f8fafc' }}>{t('feedback.selectRequestTitle')}</h2>
+              <p style={{ color: '#94a3b8', marginBottom: '2rem' }}>{t('feedback.selectRequestMsg')}</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {pickList.map((c) => (
                   <button
@@ -375,13 +394,13 @@ export default function FeedbackPage() {
                       fontSize: '1.1rem',
                       cursor: 'pointer',
                       transition: 'all 0.2s ease',
-                      textAlign: 'left',
+                      textAlign: 'start',
                     }}
                     onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
                     onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.transform = 'translateY(0)'; }}
                   >
                     <strong style={{ color: '#60a5fa', display: 'block', marginBottom: '0.25rem' }}>{c.uid}</strong>
-                    <span style={{ fontSize: '0.9rem', color: '#cbd5e1' }}>{c.productgroup} {c.model ? `(${c.model})` : ''} — {c.date}</span>
+                    <span style={{ fontSize: '0.9rem', color: '#cbd5e1' }}>{t(`productCategories.${c.productgroup}`) || c.productgroup} {c.model ? `(${c.model})` : ''} — {c.date}</span>
                   </button>
                 ))}
               </div>
@@ -393,20 +412,20 @@ export default function FeedbackPage() {
             <form onSubmit={handleUidSubmit}>
               <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                 <h1 style={{ fontSize: '2.5rem', margin: '0 0 1rem 0', background: 'linear-gradient(to right, #60a5fa, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                  Impex Feedback
+                  {t('feedback.title')}
                 </h1>
                 <p style={{ color: '#94a3b8', fontSize: '1.1rem', lineHeight: '1.5' }}>
-                  Thank you for choosing Impex Service. To provide feedback about your completed service request, please enter your Service UID.
+                  {t('feedback.subtitle')}
                 </p>
               </div>
 
               <div style={{ marginBottom: '2rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#e2e8f0', fontWeight: 500 }}>Service UID</label>
+                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#e2e8f0', fontWeight: 500 }}>{t('feedback.uidInputLabel')}</label>
                 <input
                   type="text"
                   value={uidInput}
                   onChange={(e) => setUidInput(e.target.value)}
-                  placeholder="Example: IMX-KSA-SVC-00001"
+                  placeholder={t('feedback.uidPlaceholder')}
                   required
                   disabled={attemptsExhausted}
                   style={{ width: '100%', padding: '1rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.2)', color: 'white', fontSize: '1.1rem' }}
@@ -415,7 +434,7 @@ export default function FeedbackPage() {
               </div>
 
               <button type="submit" className="nav-btn nav-btn-primary" style={{ width: '100%', padding: '1rem', fontSize: '1.1rem' }} disabled={checking || attemptsExhausted}>
-                {checking ? 'Verifying...' : 'Begin Feedback'}
+                {checking ? t('feedback.verifying') : t('feedback.beginBtn')}
               </button>
 
               {attemptsExhausted && (
@@ -427,7 +446,7 @@ export default function FeedbackPage() {
                     className="nav-btn"
                     style={{ padding: '0.85rem 1.5rem', fontSize: '1rem', background: '#25D366', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
                   >
-                    💬 Contact Customer Care (+966 54 146 3161)
+                    💬 {t('common.contactSupport')}
                   </a>
                 </div>
               )}
@@ -440,9 +459,9 @@ export default function FeedbackPage() {
               <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
                 <span style={{ fontSize: '2.5rem' }}>✓</span>
               </div>
-              <h2 style={{ fontSize: '2rem', margin: '0 0 1rem 0', color: '#f8fafc' }}>Feedback Received</h2>
+              <h2 style={{ fontSize: '2rem', margin: '0 0 1rem 0', color: '#f8fafc' }}>{t('feedback.alreadySubmittedTitle')}</h2>
               <p style={{ color: '#94a3b8', fontSize: '1.1rem', lineHeight: '1.6', marginBottom: '2rem' }}>
-                Feedback for Service UID <strong>{uid}</strong> has already been received. Thank you for taking the time to share your thoughts with us.
+                {t('feedback.alreadySubmittedMsg', { uid })}
               </p>
               <a
                 href="https://wa.me/966541463161"
@@ -451,7 +470,7 @@ export default function FeedbackPage() {
                 className="nav-btn"
                 style={{ padding: '1rem 2rem', fontSize: '1.1rem', background: '#25D366', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
               >
-                💬 Return to WhatsApp (+966 54 146 3161)
+                💬 {t('common.returnToWhatsapp')}
               </a>
             </div>
           )}
@@ -459,15 +478,15 @@ export default function FeedbackPage() {
           {/* STEP 1: TECHNICIAN */}
           {lookupState === 'idle' && wizardStep === 1 && (
             <div style={{ animation: 'fadeInUp 0.5s' }}>
-              <h2 style={{ fontSize: '1.8rem', margin: '0 0 0.5rem 0', color: '#f8fafc' }}>Technician Review</h2>
-              <p style={{ color: '#94a3b8', marginBottom: '2.5rem' }}>How would you rate the technician who visited you?</p>
+              <h2 style={{ fontSize: '1.8rem', margin: '0 0 0.5rem 0', color: '#f8fafc' }}>{t('feedback.techStepTitle')}</h2>
+              <p style={{ color: '#94a3b8', marginBottom: '2.5rem' }}>{t('feedback.techStepSubtitle')}</p>
 
-              <RatingInputRow label="1. Technician Behaviour" value={answers.q1_technician_behaviour} onChange={(v) => updateAnswer('q1_technician_behaviour', v)} />
-              <RatingInputRow label="2. Technician Punctuality / Arrival Time" value={answers.q2_technician_punctuality} onChange={(v) => updateAnswer('q2_technician_punctuality', v)} />
+              <RatingInputRow label={t('feedback.q1')} value={answers.q1_technician_behaviour} onChange={(v) => updateAnswer('q1_technician_behaviour', v)} />
+              <RatingInputRow label={t('feedback.q2')} value={answers.q2_technician_punctuality} onChange={(v) => updateAnswer('q2_technician_punctuality', v)} />
               
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '3rem' }}>
                 <button className="nav-btn nav-btn-primary" disabled={!canProceedStep1} onClick={() => setWizardStep(2)}>
-                  Continue →
+                  {t('feedback.continueBtn')}
                 </button>
               </div>
             </div>
@@ -476,33 +495,37 @@ export default function FeedbackPage() {
           {/* STEP 2: SERVICE & RESOLUTION */}
           {lookupState === 'idle' && wizardStep === 2 && (
             <div style={{ animation: 'fadeInUp 0.5s' }}>
-              <h2 style={{ fontSize: '1.8rem', margin: '0 0 0.5rem 0', color: '#f8fafc' }}>Service Details</h2>
-              <p style={{ color: '#94a3b8', marginBottom: '2.5rem' }}>Tell us about the actual service provided.</p>
+              <h2 style={{ fontSize: '1.8rem', margin: '0 0 0.5rem 0', color: '#f8fafc' }}>{t('feedback.serviceStepTitle')}</h2>
+              <p style={{ color: '#94a3b8', marginBottom: '2.5rem' }}>{t('feedback.serviceStepSubtitle')}</p>
 
-              <RatingInputRow label="3. Service Quality" value={answers.q3_service_quality} onChange={(v) => updateAnswer('q3_service_quality', v)} />
-              <RatingInputRow label="4. Overall Response Time" value={answers.q5_response_time} onChange={(v) => updateAnswer('q5_response_time', v)} />
+              <RatingInputRow label={t('feedback.q3')} value={answers.q3_service_quality} onChange={(v) => updateAnswer('q3_service_quality', v)} />
+              <RatingInputRow label={t('feedback.q5')} value={answers.q5_response_time} onChange={(v) => updateAnswer('q5_response_time', v)} />
 
               <div style={{ marginBottom: '2.5rem', animation: 'fadeInUp 0.5s' }}>
-                <label style={{ display: 'block', marginBottom: '1.25rem', fontSize: '1.15rem', fontWeight: 500, color: '#f8fafc' }}>5. Was your reported problem resolved?</label>
+                <label style={{ display: 'block', marginBottom: '1.25rem', fontSize: '1.15rem', fontWeight: 500, color: '#f8fafc' }}>{t('feedback.q4Question')}</label>
                 <ResolutionCards value={answers.q4_resolution} onChange={(v) => updateAnswer('q4_resolution', v)} />
                 
                 {needsResolutionComment && (
                   <div style={{ marginTop: '1rem', animation: 'fadeInUp 0.3s' }}>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1' }}>Please briefly explain what issue is still pending:</label>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1' }}>{t('feedback.pendingExplainLabel')}</label>
                     <textarea
                       className="textarea-premium"
                       rows={3}
                       value={answers.q4_comment}
                       onChange={(e) => updateAnswer('q4_comment', e.target.value)}
-                      placeholder="Type your explanation here..."
+                      placeholder={t('feedback.pendingExplainPlaceholder')}
                     />
                   </div>
                 )}
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3rem' }}>
-                <button className="nav-btn nav-btn-secondary" onClick={() => setWizardStep(1)}>← Back</button>
-                <button className="nav-btn nav-btn-primary" disabled={!canProceedStep2} onClick={() => setWizardStep(3)}>Continue →</button>
+                <button className="nav-btn nav-btn-secondary" onClick={() => setWizardStep(1)}>
+                  {isRtl ? '→ ' + t('common.back') : '← ' + t('common.back')}
+                </button>
+                <button className="nav-btn nav-btn-primary" disabled={!canProceedStep2} onClick={() => setWizardStep(3)}>
+                  {t('feedback.continueBtn')}
+                </button>
               </div>
             </div>
           )}
@@ -510,48 +533,50 @@ export default function FeedbackPage() {
           {/* STEP 3: OVERALL & COMMENTS */}
           {lookupState === 'idle' && wizardStep === 3 && (
             <div style={{ animation: 'fadeInUp 0.5s' }}>
-              <h2 style={{ fontSize: '1.8rem', margin: '0 0 0.5rem 0', color: '#f8fafc' }}>Overall Experience</h2>
-              <p style={{ color: '#94a3b8', marginBottom: '2.5rem' }}>Almost done! Let us know your final thoughts.</p>
+              <h2 style={{ fontSize: '1.8rem', margin: '0 0 0.5rem 0', color: '#f8fafc' }}>{t('feedback.overallStepTitle')}</h2>
+              <p style={{ color: '#94a3b8', marginBottom: '2.5rem' }}>{t('feedback.overallStepSubtitle')}</p>
 
-              <RatingInputRow label="6. Overall Service Experience" value={answers.q6_overall_experience} onChange={(v) => updateAnswer('q6_overall_experience', v)} />
+              <RatingInputRow label={t('feedback.q6')} value={answers.q6_overall_experience} onChange={(v) => updateAnswer('q6_overall_experience', v)} />
               
               {lowOverallScore && (
                 <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '1.5rem', borderRadius: '12px', marginBottom: '2.5rem', animation: 'fadeInUp 0.4s' }}>
-                  <p style={{ margin: '0 0 1rem 0', color: '#f8fafc', fontWeight: 500 }}>We are sorry your experience did not meet expectations.</p>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontSize: '0.9rem' }}>Please tell us briefly what went wrong so we can improve:</label>
+                  <p style={{ margin: '0 0 1rem 0', color: '#f8fafc', fontWeight: 500 }}>{t('feedback.lowScoreMsg')}</p>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontSize: '0.9rem' }}>{t('feedback.lowScoreLabel')}</label>
                   <textarea
                     className="textarea-premium"
                     rows={3}
                     value={answers.q8_comments}
                     onChange={(e) => updateAnswer('q8_comments', e.target.value)}
-                    placeholder="Your feedback is highly valued..."
+                    placeholder={t('feedback.lowScorePlaceholder')}
                   />
                 </div>
               )}
 
-              <RatingInputRow label="7. Product Satisfaction" value={answers.q7_product_satisfaction} onChange={(v) => updateAnswer('q7_product_satisfaction', v)} />
+              <RatingInputRow label={t('feedback.q7')} value={answers.q7_product_satisfaction} onChange={(v) => updateAnswer('q7_product_satisfaction', v)} />
 
               {!lowOverallScore && (
                 <div style={{ marginBottom: '2.5rem', animation: 'fadeInUp 0.5s' }}>
-                  <label style={{ display: 'block', marginBottom: '0.75rem', fontSize: '1.15rem', fontWeight: 500, color: '#f8fafc' }}>8. Any additional comments or suggestions? <span style={{color:'#64748b', fontSize:'0.9rem'}}>(Optional)</span></label>
+                  <label style={{ display: 'block', marginBottom: '0.75rem', fontSize: '1.15rem', fontWeight: 500, color: '#f8fafc' }}>{t('feedback.q8')}</label>
                   <textarea
                     className="textarea-premium"
                     rows={3}
                     value={answers.q8_comments}
                     onChange={(e) => updateAnswer('q8_comments', e.target.value)}
-                    placeholder="We'd love to hear your thoughts..."
+                    placeholder={t('feedback.q8Placeholder')}
                   />
                 </div>
               )}
 
-              <RatingInputRow label="9. How likely are you to recommend Impex?" value={answers.q9_recommendation} onChange={(v) => updateAnswer('q9_recommendation', v)} />
+              <RatingInputRow label={t('feedback.q9')} value={answers.q9_recommendation} onChange={(v) => updateAnswer('q9_recommendation', v)} />
 
               {submitError && <p style={{ color: '#ef4444', textAlign: 'center', marginBottom: '1rem' }}>{submitError}</p>}
               
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3rem' }}>
-                <button className="nav-btn nav-btn-secondary" disabled={submitting} onClick={() => setWizardStep(2)}>← Back</button>
+                <button className="nav-btn nav-btn-secondary" disabled={submitting} onClick={() => setWizardStep(2)}>
+                  {isRtl ? '→ ' + t('common.back') : '← ' + t('common.back')}
+                </button>
                 <button className="nav-btn nav-btn-primary" disabled={!canProceedStep3 || submitting} onClick={handleFormSubmit}>
-                  {submitting ? 'Submitting...' : 'Submit Feedback'}
+                  {submitting ? t('feedback.submittingBtn') : t('feedback.submitFeedbackBtn')}
                 </button>
               </div>
             </div>
@@ -564,12 +589,12 @@ export default function FeedbackPage() {
                 <circle cx="26" cy="26" r="25" fill="none" stroke="#10b981" strokeWidth="2" />
                 <path fill="none" stroke="#10b981" strokeWidth="4" strokeLinecap="round" strokeDasharray="100" strokeDashoffset="0" style={{ animation: 'checkmark 0.8s ease-out forwards' }} d="M14 27l7 7 16-16" />
               </svg>
-              <h2 style={{ fontSize: '2.2rem', margin: '0 0 1rem 0', color: '#f8fafc' }}>Thank You!</h2>
+              <h2 style={{ fontSize: '2.2rem', margin: '0 0 1rem 0', color: '#f8fafc' }}>{t('feedback.thankYouTitle')}</h2>
               <p style={{ color: '#94a3b8', fontSize: '1.1rem', lineHeight: '1.6', marginBottom: '0.5rem' }}>
-                Your feedback has been successfully recorded for Service UID: <strong>{uid}</strong>.
+                {t('feedback.thankYouMsg1', { uid })}
               </p>
               <p style={{ color: '#94a3b8', fontSize: '1.1rem', lineHeight: '1.6', marginBottom: '2rem' }}>
-                Your feedback helps us improve our products and service quality. Have a great day!
+                {t('feedback.thankYouMsg2')}
               </p>
               <a
                 href="https://wa.me/966541463161"
@@ -578,7 +603,7 @@ export default function FeedbackPage() {
                 className="nav-btn"
                 style={{ padding: '1rem 2rem', fontSize: '1.1rem', background: '#25D366', color: '#fff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
               >
-                💬 Return to WhatsApp (+966 54 146 3161)
+                💬 {t('common.returnToWhatsapp')}
               </a>
             </div>
           )}
@@ -588,3 +613,4 @@ export default function FeedbackPage() {
     </div>
   );
 }
+

@@ -322,3 +322,32 @@ textarea.form-control {
   background-color: rgba(245, 158, 11, 0.2);
   color: #fbbf24;
 }
+
+/* RTL & Language Header Utilities */
+.page-top-panel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  width: 100%;
+}
+
+html[dir="rtl"] body {
+  text-align: right;
+}
+
+html[dir="rtl"] .spinner {
+  margin-right: 0;
+  margin-left: 8px;
+}
+
+html[dir="rtl"] th,
+html[dir="rtl"] td {
+  text-align: right;
+}
+
+html[dir="rtl"] .btn-primary svg,
+html[dir="rtl"] .btn-secondary svg {
+  transform: scaleX(-1);
+}
+

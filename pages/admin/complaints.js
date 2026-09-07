@@ -3,6 +3,8 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import ComplaintText, { batchTranslate } from '../../components/ComplaintText';
+import { useLanguage } from '@/lib/LanguageContext';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 const N8N_BASE = 'https://n8n.srv1623198.hstgr.cloud/webhook';
 
@@ -11,6 +13,7 @@ const complaintsCache = new Map();
 
 export default function ComplaintsPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [complaints, setComplaints] = useState([]);
   const [filter, setFilter] = useState('PENDING_PAYMENT_VERIFICATION');
   const [loading, setLoading] = useState(false);
@@ -84,7 +87,7 @@ export default function ComplaintsPage() {
           router.push('/admin/login');
           return;
         }
-        setError(data.message || 'Failed to load complaints');
+        setError(data.message || t('common.error'));
         if (!cached) setComplaints([]);
         return;
       }
@@ -103,7 +106,7 @@ export default function ComplaintsPage() {
       }
     } catch (err) {
       console.error(err);
-      if (!cached) setError('Network error loading complaints');
+      if (!cached) setError(t('common.error'));
     } finally {
       setLoading(false);
       setIsRevalidating(false);
@@ -226,21 +229,22 @@ export default function ComplaintsPage() {
   return (
     <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
       <Head>
-        <title>Impex - Admin Dashboard</title>
+        <title>Impex - {t('admin.complaintsDashboard')}</title>
       </Head>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h1 style={{ margin: 0, fontSize: '2rem', textAlign: 'left', background: 'linear-gradient(to right, #60a5fa, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-          Complaints Dashboard
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <h1 style={{ margin: 0, fontSize: '2rem', textAlign: 'start', background: 'linear-gradient(to right, #60a5fa, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          {t('admin.complaintsDashboard')}
         </h1>
         
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <Link href="/admin/complaints" className="btn btn-primary" style={{ width: 'auto', padding: '0.5rem 1.5rem', textDecoration: 'none' }}>
-            Complaints
+            {t('admin.complaintsDashboard')}
           </Link>
           <Link href="/admin/feedback" className="btn btn-secondary" style={{ width: 'auto', padding: '0.5rem 1.5rem', textDecoration: 'none' }}>
-            Feedback
+            {t('admin.feedbackDashboard')}
           </Link>
-          <button className="btn btn-secondary" onClick={logout} style={{ width: 'auto', padding: '0.5rem 1.5rem', borderRadius: '8px', marginLeft: '1rem' }}>Log out</button>
+          <LanguageSwitcher />
+          <button className="btn btn-secondary" onClick={logout} style={{ width: 'auto', padding: '0.5rem 1.5rem', borderRadius: '8px' }}>{t('common.logout')}</button>
         </div>
       </div>
 
@@ -250,21 +254,21 @@ export default function ComplaintsPage() {
           style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.875rem' }}
           onClick={() => setFilter('PENDING_PAYMENT_VERIFICATION')}
         >
-          Pending Verification
+          {t('admin.pendingVerification')}
         </button>
         <button 
           className={`btn ${filter === 'ALL' ? 'btn-primary' : 'btn-secondary'}`} 
           style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.875rem' }}
           onClick={() => setFilter('ALL')}
         >
-          All Complaints
+          {t('admin.allComplaints')}
         </button>
         <button 
           className={`btn ${filter === 'OW_CANCELLED' ? 'btn-primary' : 'btn-secondary'}`} 
           style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.875rem' }}
           onClick={() => setFilter('OW_CANCELLED')}
         >
-          Cancelled
+          {t('admin.cancelled')}
         </button>
         
         <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.2)', margin: '0 0.5rem' }} />
@@ -274,7 +278,7 @@ export default function ComplaintsPage() {
           style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.875rem' }}
           onClick={() => setFilter('PENDING_REVIEW')}
         >
-          Pending Review
+          {t('admin.pendingReview')}
         </button>
         
         <button 
@@ -282,22 +286,22 @@ export default function ComplaintsPage() {
           style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.875rem' }}
           onClick={() => setFilter('FOLLOW_UP')}
         >
-          Follow-up
+          {t('admin.followUp')}
         </button>
         
         <div style={{ flex: 1 }} />
         
         {isRevalidating && (
           <span style={{ fontSize: '0.75rem', color: '#60a5fa', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <div className="spinner" style={{ width: '12px', height: '12px', borderWidth: '2px' }} /> Updating...
+            <div className="spinner" style={{ width: '12px', height: '12px', borderWidth: '2px' }} /> {t('admin.updating')}
           </span>
         )}
 
         <button className="btn btn-secondary" style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.875rem' }} onClick={() => loadComplaints(true)}>
-          Refresh ↻
+          {t('common.refresh')}
         </button>
         <button className="btn btn-primary" style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.875rem', background: 'linear-gradient(to right, #10b981, #059669)', border: 'none', color: 'white' }} onClick={exportToExcel} disabled={complaints.length === 0}>
-          Export to Excel
+          {t('common.exportToExcel')}
         </button>
       </div>
 
@@ -305,20 +309,21 @@ export default function ComplaintsPage() {
       {error && <div className="glass-panel" style={{ padding: '1rem', color: 'var(--error-color)', borderColor: 'rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.05)' }}>{error}</div>}
 
       <div className="glass-panel" style={{ overflowX: 'auto', padding: 0 }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '1100px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'start', minWidth: '1100px' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.02)' }}>
-              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>UID</th>
-              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Date</th>
-              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Customer</th>
-              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Product</th>
-              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Status</th>
-              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Complaint</th>
-              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Proof</th>
-              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Review</th>
-              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Actions</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('admin.colUid')}</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('admin.colDate')}</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('admin.colCustomer')}</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('admin.colProduct')}</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('admin.colStatus')}</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('admin.colComplaint')}</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('admin.colProof')}</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('admin.colReview')}</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('admin.colActions')}</th>
             </tr>
           </thead>
+
           <tbody>
             {displayedComplaints.map((c, idx) => (
               <tr key={c.uid || `${c.phone}-${c.createdat}`} id={`row-${c.uid}`} style={{ borderBottom: idx === displayedComplaints.length - 1 ? 'none' : '1px solid rgba(255,255,255,0.05)', transition: 'background 0.2s', background: (filter === 'FOLLOW_UP' && router.query.uid === c.uid) ? 'rgba(245, 158, 11, 0.1)' : 'transparent' }}>

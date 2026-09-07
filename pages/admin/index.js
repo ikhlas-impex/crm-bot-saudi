@@ -2,9 +2,12 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
+import { useLanguage } from '@/lib/LanguageContext';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 export default function AdminHub() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   useEffect(() => {
     const sessionid = sessionStorage.getItem('sessionid');
@@ -21,26 +24,30 @@ export default function AdminHub() {
   return (
     <div className="container" style={{ display: 'flex', alignItems: 'center', minHeight: '100vh', flexDirection: 'column', paddingTop: '4rem' }}>
       <Head>
-        <title>Impex - Admin Hub</title>
+        <title>Impex - {t('admin.hubTitle')}</title>
       </Head>
-      <div style={{ width: '100%', maxWidth: '600px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h1 style={{ margin: 0, fontSize: '2rem', textAlign: 'left', background: 'linear-gradient(to right, #60a5fa, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-          Admin Hub
+      <div style={{ width: '100%', maxWidth: '600px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <h1 style={{ margin: 0, fontSize: '2rem', textAlign: 'start', background: 'linear-gradient(to right, #60a5fa, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          {t('admin.hubTitle')}
         </h1>
-        <button className="btn btn-secondary" onClick={logout} style={{ width: 'auto', padding: '0.5rem 1.5rem', borderRadius: '8px' }}>Log out</button>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <LanguageSwitcher />
+          <button className="btn btn-secondary" onClick={logout} style={{ width: 'auto', padding: '0.5rem 1.5rem', borderRadius: '8px' }}>{t('common.logout')}</button>
+        </div>
       </div>
 
       <div className="glass-panel" style={{ width: '100%', maxWidth: '600px', padding: '3rem', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        <h2 style={{ marginBottom: '0.5rem' }}>Welcome to the Admin Hub</h2>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Please select a dashboard to manage.</p>
+        <h2 style={{ marginBottom: '0.5rem' }}>{t('admin.welcome')}</h2>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>{t('admin.selectDashboard')}</p>
         
         <Link href="/admin/complaints" className="btn btn-primary" style={{ padding: '1rem', fontSize: '1.1rem', textDecoration: 'none', display: 'block' }}>
-          Complaints Dashboard
+          {t('admin.complaintsDashboard')}
         </Link>
         <Link href="/admin/feedback" className="btn btn-secondary" style={{ padding: '1rem', fontSize: '1.1rem', textDecoration: 'none', display: 'block' }}>
-          Feedback Dashboard
+          {t('admin.feedbackDashboard')}
         </Link>
       </div>
     </div>
   );
 }
+

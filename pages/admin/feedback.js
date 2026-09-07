@@ -2,9 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
+import { useLanguage } from '@/lib/LanguageContext';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 export default function FeedbackDashboard() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [feedback, setFeedback] = useState([]);
   const [filter, setFilter] = useState('ALL'); // ALL, FLAGGED
   const [loading, setLoading] = useState(false);
@@ -29,17 +32,16 @@ export default function FeedbackDashboard() {
       });
       const data = await res.json();
       if (!data.success) {
-        setCustomerError(data.message || 'Failed to fetch customer details');
+        setCustomerError(data.message || t('common.error'));
       } else {
         setCustomerDetails(data.customer);
       }
     } catch (err) {
-      setCustomerError('Network error');
+      setCustomerError(t('common.error'));
     } finally {
       setLoadingCustomer(false);
     }
   }
-    typeof window !== 'undefined' ? sessionStorage.getItem('sessionid') : null;
 
   const loadFeedback = useCallback(async () => {
     const sessionid = getSessionId();
@@ -62,7 +64,7 @@ export default function FeedbackDashboard() {
           router.push('/admin/login');
           return;
         }
-        setError(data.message || 'Failed to load feedback');
+        setError(data.message || t('common.error'));
         setFeedback([]);
         return;
       }
@@ -75,11 +77,11 @@ export default function FeedbackDashboard() {
       setFeedback(items);
     } catch (err) {
       console.error(err);
-      setError('Network error loading feedback');
+      setError(t('common.error'));
     } finally {
       setLoading(false);
     }
-  }, [filter, router]);
+  }, [filter, router, t]);
 
   useEffect(() => {
     loadFeedback();
@@ -102,21 +104,22 @@ export default function FeedbackDashboard() {
   return (
     <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
       <Head>
-        <title>Impex - Admin Dashboard - Feedback</title>
+        <title>Impex - {t('admin.feedbackDashboard')}</title>
       </Head>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h1 style={{ margin: 0, fontSize: '2rem', textAlign: 'left', background: 'linear-gradient(to right, #60a5fa, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-          Feedback Dashboard
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <h1 style={{ margin: 0, fontSize: '2rem', textAlign: 'start', background: 'linear-gradient(to right, #60a5fa, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          {t('admin.feedbackDashboard')}
         </h1>
         
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <Link href="/admin/complaints" className="btn btn-secondary" style={{ width: 'auto', padding: '0.5rem 1.5rem', textDecoration: 'none' }}>
-            Complaints
+            {t('admin.complaintsDashboard')}
           </Link>
           <Link href="/admin/feedback" className="btn btn-primary" style={{ width: 'auto', padding: '0.5rem 1.5rem', textDecoration: 'none' }}>
-            Feedback
+            {t('admin.feedbackDashboard')}
           </Link>
-          <button className="btn btn-secondary" onClick={logout} style={{ width: 'auto', padding: '0.5rem 1.5rem', borderRadius: '8px', marginLeft: '1rem' }}>Log out</button>
+          <LanguageSwitcher />
+          <button className="btn btn-secondary" onClick={logout} style={{ width: 'auto', padding: '0.5rem 1.5rem', borderRadius: '8px' }}>{t('common.logout')}</button>
         </div>
       </div>
 
@@ -126,23 +129,23 @@ export default function FeedbackDashboard() {
           style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.875rem' }}
           onClick={() => setFilter('ALL')}
         >
-          All Feedback
+          {t('admin.allFeedback')}
         </button>
         <button 
           className={`btn ${filter === 'FLAGGED' ? 'btn-primary' : 'btn-secondary'}`} 
           style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.875rem' }}
           onClick={() => setFilter('FLAGGED')}
         >
-          Flagged Feedback
+          {t('admin.flaggedFeedback')}
         </button>
         
         <div style={{ flex: 1 }} />
         
         <button className="btn btn-secondary" style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.875rem' }} onClick={loadFeedback}>
-          Refresh ↻
+          {t('common.refresh')}
         </button>
         <button className="btn btn-primary" style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.875rem', background: 'linear-gradient(to right, #10b981, #059669)', border: 'none', color: 'white' }} onClick={exportToExcel} disabled={feedback.length === 0}>
-          Export to Excel
+          {t('common.exportToExcel')}
         </button>
       </div>
 
@@ -150,17 +153,18 @@ export default function FeedbackDashboard() {
       {error && <div className="glass-panel" style={{ padding: '1rem', color: 'var(--error-color)', borderColor: 'rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.05)' }}>{error}</div>}
 
       <div className="glass-panel" style={{ overflowX: 'auto', padding: 0 }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '1000px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'start', minWidth: '1000px' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.02)' }}>
-              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>UID</th>
-              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Date</th>
-              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Overall Score</th>
-              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Resolution</th>
-              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Status</th>
-              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Reason</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('admin.colUid')}</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('admin.colDate')}</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('admin.colScore')}</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('admin.colResolution')}</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('admin.colStatus')}</th>
+              <th style={{ padding: '1.25rem 1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('admin.colReason')}</th>
             </tr>
           </thead>
+
           <tbody>
             {feedback.map((f, idx) => (
               <tr key={f.uid} style={{ borderBottom: idx === feedback.length - 1 ? 'none' : '1px solid rgba(255,255,255,0.05)', transition: 'background 0.2s', ':hover': { background: 'rgba(255,255,255,0.02)' } }}>
