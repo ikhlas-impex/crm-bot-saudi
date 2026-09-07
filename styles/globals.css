@@ -351,3 +351,121 @@ html[dir="rtl"] .btn-secondary svg {
   transform: scaleX(-1);
 }
 
+/* Filter Dropdown Popover */
+.filter-dropdown-container {
+  position: relative;
+  display: inline-block;
+}
+
+.filter-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+  padding: 16px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+  animation: popoverFadeIn 0.15s ease-out;
+  backdrop-filter: blur(16px);
+  color: var(--text-primary);
+}
+
+html[dir="rtl"] .filter-popover {
+  left: auto;
+  right: 0;
+}
+
+@keyframes popoverFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.filter-popover-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-clear-filters {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-clear-filters:hover {
+  text-decoration: underline;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filter-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.date-range-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+
+.date-range-grid > div {
+  min-width: 0;
+}
+
+.filter-popover input[type="date"],
+.filter-popover select {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  background-color: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  box-sizing: border-box;
+}
+
+.filter-sublabel {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.filter-active-badge {
+  background: #3b82f6;
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  margin-left: 6px;
+}
+
+html[dir="rtl"] .filter-active-badge {
+  margin-left: 0;
+  margin-right: 6px;
+}
+
+

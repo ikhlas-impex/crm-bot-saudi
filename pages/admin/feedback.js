@@ -17,6 +17,24 @@ export default function FeedbackDashboard() {
   const [loadingCustomer, setLoadingCustomer] = useState(false);
   const [customerError, setCustomerError] = useState('');
 
+  // Advanced Filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  // Close filter popover when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (!e.target.closest('.filter-dropdown-container')) {
+        setIsFilterOpen(false);
+      }
+    }
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
   const getSessionId = () =>
     typeof window !== 'undefined' ? sessionStorage.getItem('sessionid') : null;
 
@@ -89,7 +107,7 @@ export default function FeedbackDashboard() {
 
   function exportToExcel() {
     import('xlsx').then((XLSX) => {
-      const ws = XLSX.utils.json_to_sheet(feedback);
+      const ws = XLSX.utils.json_to_sheet(displayedFeedback);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Feedback');
       XLSX.writeFile(wb, `feedback-${new Date().toISOString().slice(0, 10)}.xlsx`);
@@ -101,10 +119,46 @@ export default function FeedbackDashboard() {
     router.push('/admin/login');
   }
 
+  // Filtering & Sorting
+  const fromTime = dateFrom ? new Date(dateFrom + 'T00:00:00').getTime() : null;
+  const toTime = dateTo ? new Date(dateTo + 'T23:59:59').getTime() : null;
+
+  const displayedFeedback = feedback.filter((f) => {
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const combined = `${f.uid || ''} ${f.q4_resolution || ''} ${f.flagreason || ''} ${f.q8_comments || ''}`.toLowerCase();
+      if (!combined.includes(q)) return false;
+    }
+    if (fromTime || toTime) {
+      const itemTime = new Date(f.submittedat).getTime();
+      if (!isNaN(itemTime)) {
+        if (fromTime && itemTime < fromTime) return false;
+        if (toTime && itemTime > toTime) return false;
+      }
+    }
+    return true;
+  });
+
+  displayedFeedback.sort((a, b) => {
+    const timeA = new Date(a.submittedat).getTime() || 0;
+    const timeB = new Date(b.submittedat).getTime() || 0;
+    if (timeA !== timeB && timeA > 0 && timeB > 0) {
+      return sortOrder === 'asc' ? timeA - timeB : timeB - timeA;
+    }
+    return sortOrder === 'asc'
+      ? (a.uid || '').localeCompare(b.uid || '', undefined, { numeric: true })
+      : (b.uid || '').localeCompare(a.uid || '', undefined, { numeric: true });
+  });
+
+  let activeFilterCount = 0;
+  if (dateFrom || dateTo) activeFilterCount++;
+  if (sortOrder !== 'desc') activeFilterCount++;
+  if (searchQuery.trim()) activeFilterCount++;
+
   return (
     <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
       <Head>
-        <title>Impex - {t('admin.feedbackDashboard')}</title>
+        <title>{`Impex - ${t('admin.feedbackDashboard')}`}</title>
       </Head>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <h1 style={{ margin: 0, fontSize: '2rem', textAlign: 'start', background: 'linear-gradient(to right, #60a5fa, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
@@ -123,7 +177,7 @@ export default function FeedbackDashboard() {
         </div>
       </div>
 
-      <div className="glass-panel" style={{ padding: '1.25rem', marginBottom: '2rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+      <div className="glass-panel" style={{ padding: '1.25rem', marginBottom: '2rem', display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
         <button 
           className={`btn ${filter === 'ALL' ? 'btn-primary' : 'btn-secondary'}`} 
           style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.875rem' }}
@@ -138,13 +192,99 @@ export default function FeedbackDashboard() {
         >
           {t('admin.flaggedFeedback')}
         </button>
+
+        <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.2)', margin: '0 0.25rem' }} />
+
+        {/* Filter Popover Button */}
+        <div className="filter-dropdown-container">
+          <button 
+            type="button" 
+            className="btn btn-secondary" 
+            style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.875rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+            onClick={() => setIsFilterOpen(!isFilterOpen)}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+            <span>{t('admin.filterBtn')}</span>
+            {activeFilterCount > 0 && <span className="filter-active-badge">{activeFilterCount}</span>}
+          </button>
+
+          {isFilterOpen && (
+            <div className="filter-popover" onClick={(e) => e.stopPropagation()}>
+              <div className="filter-popover-header">
+                <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>{t('admin.filterOptions')}</span>
+                <button 
+                  type="button" 
+                  className="btn-clear-filters" 
+                  onClick={() => {
+                    setDateFrom('');
+                    setDateTo('');
+                    setSortOrder('desc');
+                    setSearchQuery('');
+                  }}
+                >
+                  {t('admin.clearAll')}
+                </button>
+              </div>
+
+              <div className="filter-group">
+                <label className="filter-label">{t('admin.dateRange')}</label>
+                <div className="date-range-grid">
+                  <div>
+                    <span className="filter-sublabel">{t('admin.fromDate')}</span>
+                    <input 
+                      type="date" 
+                      value={dateFrom} 
+                      onChange={(e) => setDateFrom(e.target.value)} 
+                    />
+                  </div>
+                  <div>
+                    <span className="filter-sublabel">{t('admin.toDate')}</span>
+                    <input 
+                      type="date" 
+                      value={dateTo} 
+                      onChange={(e) => setDateTo(e.target.value)} 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="filter-group">
+                <label className="filter-label">{t('admin.sortOrder')}</label>
+                <select 
+                  value={sortOrder} 
+                  onChange={(e) => setSortOrder(e.target.value)}
+                >
+                  <option value="desc">{t('admin.sortDesc')}</option>
+                  <option value="asc">{t('admin.sortAsc')}</option>
+                </select>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Search Field */}
+        <input 
+          type="text" 
+          placeholder={t('admin.searchPlaceholder')}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
+            padding: '0.5rem 0.75rem',
+            fontSize: '0.875rem',
+            borderRadius: '8px',
+            border: '1px solid var(--border-color)',
+            background: 'rgba(15, 23, 42, 0.6)',
+            color: 'white',
+            width: '200px'
+          }}
+        />
         
         <div style={{ flex: 1 }} />
         
         <button className="btn btn-secondary" style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.875rem' }} onClick={loadFeedback}>
           {t('common.refresh')}
         </button>
-        <button className="btn btn-primary" style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.875rem', background: 'linear-gradient(to right, #10b981, #059669)', border: 'none', color: 'white' }} onClick={exportToExcel} disabled={feedback.length === 0}>
+        <button className="btn btn-primary" style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.875rem', background: 'linear-gradient(to right, #10b981, #059669)', border: 'none', color: 'white' }} onClick={exportToExcel} disabled={displayedFeedback.length === 0}>
           {t('common.exportToExcel')}
         </button>
       </div>
@@ -166,8 +306,8 @@ export default function FeedbackDashboard() {
           </thead>
 
           <tbody>
-            {feedback.map((f, idx) => (
-              <tr key={f.uid} style={{ borderBottom: idx === feedback.length - 1 ? 'none' : '1px solid rgba(255,255,255,0.05)', transition: 'background 0.2s', ':hover': { background: 'rgba(255,255,255,0.02)' } }}>
+            {displayedFeedback.map((f, idx) => (
+              <tr key={f.uid} style={{ borderBottom: idx === displayedFeedback.length - 1 ? 'none' : '1px solid rgba(255,255,255,0.05)', transition: 'background 0.2s', ':hover': { background: 'rgba(255,255,255,0.02)' } }}>
                 <td style={{ padding: '1rem', fontFamily: 'monospace', color: '#a5b4fc', fontSize: '0.875rem' }}>
                   <button 
                     onClick={() => setSelectedFeedbackDetails(f)}
@@ -201,7 +341,7 @@ export default function FeedbackDashboard() {
                 </td>
               </tr>
             ))}
-            {!loading && feedback.length === 0 && (
+            {!loading && displayedFeedback.length === 0 && (
               <tr><td colSpan={6} style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--text-secondary)' }}>No feedback found matching this filter.</td></tr>
             )}
           </tbody>

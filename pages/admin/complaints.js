@@ -11,6 +11,41 @@ const N8N_BASE = 'https://n8n.srv1623198.hstgr.cloud/webhook';
 // Client-side SWR cache store (stale-while-revalidate)
 const complaintsCache = new Map();
 
+function parseDateToTimestamp(dateStr) {
+  if (!dateStr) return 0;
+  const str = String(dateStr).trim();
+  if (!str) return 0;
+
+  let ts = Date.parse(str);
+  if (!isNaN(ts)) return ts;
+
+  const mmmMatch = /^(\d{1,2})[-/ ]([A-Za-z]{3})[-/ ](\d{2,4})$/.exec(str);
+  if (mmmMatch) {
+    const day = parseInt(mmmMatch[1], 10);
+    const monthStr = mmmMatch[2].toLowerCase();
+    let year = parseInt(mmmMatch[3], 10);
+    if (year < 100) year += 2000;
+    const monthNames = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+    const monthIdx = monthNames.indexOf(monthStr);
+    if (monthIdx !== -1) return new Date(year, monthIdx, day).getTime();
+  }
+
+  const parts = str.split(/[-/]/);
+  if (parts.length === 3) {
+    let y = parseInt(parts[0], 10);
+    let m = parseInt(parts[1], 10) - 1;
+    let d = parseInt(parts[2], 10);
+    if (y < 1000 && parts[2].length === 4) {
+      d = parseInt(parts[0], 10);
+      m = parseInt(parts[1], 10) - 1;
+      y = parseInt(parts[2], 10);
+    }
+    const dt = new Date(y, m, d);
+    if (!isNaN(dt.getTime())) return dt.getTime();
+  }
+  return 0;
+}
+
 export default function ComplaintsPage() {
   const router = useRouter();
   const { t } = useLanguage();
@@ -25,9 +60,27 @@ export default function ComplaintsPage() {
   const [selectedProofsComplaint, setSelectedProofsComplaint] = useState(null);
   const [selectedComplaintDetails, setSelectedComplaintDetails] = useState(null);
 
+  // Advanced Filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+
   // Pagination state (20 items per page)
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
+
+  // Close filter popover when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (!e.target.closest('.filter-dropdown-container')) {
+        setIsFilterOpen(false);
+      }
+    }
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   const getSessionId = () =>
     typeof window !== 'undefined' ? sessionStorage.getItem('sessionid') : null;
@@ -211,15 +264,46 @@ export default function ComplaintsPage() {
     router.push('/admin/login');
   }
 
-  // Filter out cancelled / non-UID complaints from pending & follow-up tabs
+  // Filter out cancelled / non-UID complaints from pending & follow-up tabs + Apply Date Range, Search & Sorting
+  const fromTime = dateFrom ? new Date(dateFrom + 'T00:00:00').getTime() : null;
+  const toTime = dateTo ? new Date(dateTo + 'T23:59:59').getTime() : null;
+
   const activeComplaints = complaints.filter((c) => {
     if (filter === 'PENDING_REVIEW' || filter === 'PENDING_PAYMENT_VERIFICATION' || filter === 'FOLLOW_UP') {
       if (!c.uid || c.status === 'OW_CANCELLED' || (c.status && c.status.toLowerCase().includes('cancelled'))) {
         return false;
       }
     }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const combined = `${c.uid || ''} ${c.customername || ''} ${c.phone || ''} ${c.productgroup || ''} ${c.model || ''} ${c.complaintdetails || ''}`.toLowerCase();
+      if (!combined.includes(q)) return false;
+    }
+    if (fromTime || toTime) {
+      const itemTime = parseDateToTimestamp(c.date || c.createdat);
+      if (itemTime > 0) {
+        if (fromTime && itemTime < fromTime) return false;
+        if (toTime && itemTime > toTime) return false;
+      }
+    }
     return true;
   });
+
+  activeComplaints.sort((a, b) => {
+    const timeA = parseDateToTimestamp(a.date || a.createdat);
+    const timeB = parseDateToTimestamp(b.date || b.createdat);
+    if (timeA !== timeB && timeA > 0 && timeB > 0) {
+      return sortOrder === 'asc' ? timeA - timeB : timeB - timeA;
+    }
+    return sortOrder === 'asc'
+      ? (a.uid || '').localeCompare(b.uid || '', undefined, { numeric: true })
+      : (b.uid || '').localeCompare(a.uid || '', undefined, { numeric: true });
+  });
+
+  let activeFilterCount = 0;
+  if (dateFrom || dateTo) activeFilterCount++;
+  if (sortOrder !== 'desc') activeFilterCount++;
+  if (searchQuery.trim()) activeFilterCount++;
 
   // Pagination Math
   const totalPages = Math.ceil(activeComplaints.length / pageSize) || 1;
@@ -229,7 +313,7 @@ export default function ComplaintsPage() {
   return (
     <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
       <Head>
-        <title>Impex - {t('admin.complaintsDashboard')}</title>
+        <title>{`Impex - ${t('admin.complaintsDashboard')}`}</title>
       </Head>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <h1 style={{ margin: 0, fontSize: '2rem', textAlign: 'start', background: 'linear-gradient(to right, #60a5fa, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
@@ -248,35 +332,35 @@ export default function ComplaintsPage() {
         </div>
       </div>
 
-      <div className="glass-panel" style={{ padding: '1.25rem', marginBottom: '2rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+      <div className="glass-panel" style={{ padding: '1.25rem', marginBottom: '2rem', display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
         <button 
           className={`btn ${filter === 'PENDING_PAYMENT_VERIFICATION' ? 'btn-primary' : 'btn-secondary'}`} 
           style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.875rem' }}
-          onClick={() => setFilter('PENDING_PAYMENT_VERIFICATION')}
+          onClick={() => { setFilter('PENDING_PAYMENT_VERIFICATION'); setCurrentPage(1); }}
         >
           {t('admin.pendingVerification')}
         </button>
         <button 
           className={`btn ${filter === 'ALL' ? 'btn-primary' : 'btn-secondary'}`} 
           style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.875rem' }}
-          onClick={() => setFilter('ALL')}
+          onClick={() => { setFilter('ALL'); setCurrentPage(1); }}
         >
           {t('admin.allComplaints')}
         </button>
         <button 
           className={`btn ${filter === 'OW_CANCELLED' ? 'btn-primary' : 'btn-secondary'}`} 
           style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.875rem' }}
-          onClick={() => setFilter('OW_CANCELLED')}
+          onClick={() => { setFilter('OW_CANCELLED'); setCurrentPage(1); }}
         >
           {t('admin.cancelled')}
         </button>
         
-        <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.2)', margin: '0 0.5rem' }} />
+        <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.2)', margin: '0 0.25rem' }} />
         
         <button 
           className={`btn ${filter === 'PENDING_REVIEW' ? 'btn-primary' : 'btn-secondary'}`} 
           style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.875rem' }}
-          onClick={() => setFilter('PENDING_REVIEW')}
+          onClick={() => { setFilter('PENDING_REVIEW'); setCurrentPage(1); }}
         >
           {t('admin.pendingReview')}
         </button>
@@ -284,11 +368,97 @@ export default function ComplaintsPage() {
         <button 
           className={`btn ${filter === 'FOLLOW_UP' ? 'btn-primary' : 'btn-secondary'}`} 
           style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.875rem' }}
-          onClick={() => setFilter('FOLLOW_UP')}
+          onClick={() => { setFilter('FOLLOW_UP'); setCurrentPage(1); }}
         >
           {t('admin.followUp')}
         </button>
-        
+
+        <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.2)', margin: '0 0.25rem' }} />
+
+        {/* Filter Popover Button */}
+        <div className="filter-dropdown-container">
+          <button 
+            type="button" 
+            className="btn btn-secondary" 
+            style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.875rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+            onClick={() => setIsFilterOpen(!isFilterOpen)}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+            <span>{t('admin.filterBtn')}</span>
+            {activeFilterCount > 0 && <span className="filter-active-badge">{activeFilterCount}</span>}
+          </button>
+
+          {isFilterOpen && (
+            <div className="filter-popover" onClick={(e) => e.stopPropagation()}>
+              <div className="filter-popover-header">
+                <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>{t('admin.filterOptions')}</span>
+                <button 
+                  type="button" 
+                  className="btn-clear-filters" 
+                  onClick={() => {
+                    setDateFrom('');
+                    setDateTo('');
+                    setSortOrder('desc');
+                    setSearchQuery('');
+                  }}
+                >
+                  {t('admin.clearAll')}
+                </button>
+              </div>
+
+              <div className="filter-group">
+                <label className="filter-label">{t('admin.dateRange')}</label>
+                <div className="date-range-grid">
+                  <div>
+                    <span className="filter-sublabel">{t('admin.fromDate')}</span>
+                    <input 
+                      type="date" 
+                      value={dateFrom} 
+                      onChange={(e) => { setDateFrom(e.target.value); setCurrentPage(1); }} 
+                    />
+                  </div>
+                  <div>
+                    <span className="filter-sublabel">{t('admin.toDate')}</span>
+                    <input 
+                      type="date" 
+                      value={dateTo} 
+                      onChange={(e) => { setDateTo(e.target.value); setCurrentPage(1); }} 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="filter-group">
+                <label className="filter-label">{t('admin.sortOrder')}</label>
+                <select 
+                  value={sortOrder} 
+                  onChange={(e) => { setSortOrder(e.target.value); setCurrentPage(1); }}
+                >
+                  <option value="desc">{t('admin.sortDesc')}</option>
+                  <option value="asc">{t('admin.sortAsc')}</option>
+                </select>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Search Field */}
+        <input 
+          type="text" 
+          placeholder={t('admin.searchPlaceholder')}
+          value={searchQuery}
+          onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+          style={{
+            padding: '0.5rem 0.75rem',
+            fontSize: '0.875rem',
+            borderRadius: '8px',
+            border: '1px solid var(--border-color)',
+            background: 'rgba(15, 23, 42, 0.6)',
+            color: 'white',
+            width: '200px'
+          }}
+        />
+
         <div style={{ flex: 1 }} />
         
         {isRevalidating && (
