@@ -415,6 +415,7 @@ export default function ComplaintsPage() {
                       type="date" 
                       value={dateFrom} 
                       onChange={(e) => { setDateFrom(e.target.value); setCurrentPage(1); }} 
+                      onClick={(e) => { try { if (e.target.showPicker) e.target.showPicker(); } catch (err) {} }}
                     />
                   </div>
                   <div>
@@ -423,6 +424,7 @@ export default function ComplaintsPage() {
                       type="date" 
                       value={dateTo} 
                       onChange={(e) => { setDateTo(e.target.value); setCurrentPage(1); }} 
+                      onClick={(e) => { try { if (e.target.showPicker) e.target.showPicker(); } catch (err) {} }}
                     />
                   </div>
                 </div>

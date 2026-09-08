@@ -110,7 +110,7 @@ export default async function handler(req, res) {
     const warrantystatus = fields.warrantystatus; // 'IW' | 'OW'
     const decision = fields.decision || '';        // 'accepted' | 'cancelled' - OW only
 
-    if (warrantystatus !== 'IW' && !(warrantystatus === 'OW' && (decision === 'accepted' || decision === 'cancelled'))) {
+    if (warrantystatus !== 'IW' && warrantystatus !== 'OW' && decision !== 'accepted' && decision !== 'cancelled') {
       return res.status(400).json({ success: false, message: 'Invalid warrantystatus/decision combination' });
     }
 
@@ -129,16 +129,16 @@ export default async function handler(req, res) {
     let paymentstatus = 'N/A';
     let sendConfirmationNow = false;
 
-    if (warrantystatus === 'IW') {
-      seq += 1;
-      uid = `IMX-KSA-SVC-${String(seq).padStart(5, '0')}`;
-      status = 'REGISTERED';
-      sendConfirmationNow = true;
-    } else if (decision === 'accepted') {
+    if (decision === 'accepted') {
       seq += 1;
       uid = `IMX-KSA-SVC-${String(seq).padStart(5, '0')}`;
       status = 'PENDING_PAYMENT_VERIFICATION';
       paymentstatus = 'PENDING_VERIFICATION';
+    } else if (warrantystatus === 'IW') {
+      seq += 1;
+      uid = `IMX-KSA-SVC-${String(seq).padStart(5, '0')}`;
+      status = 'REGISTERED';
+      sendConfirmationNow = true;
     } else {
       status = 'OW_CANCELLED';
       cancelreason = 'OW - Customer not willing to pay';

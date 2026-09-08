@@ -5,12 +5,90 @@ import imageCompression from 'browser-image-compression';
 import { useLanguage } from '@/lib/LanguageContext';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 
+function BankDetailsCard({ t, lang }) {
+  return (
+    <div style={{
+      background: 'rgba(15, 23, 42, 0.75)',
+      border: '1px solid rgba(255, 255, 255, 0.15)',
+      borderRadius: '12px',
+      padding: '1.25rem',
+      marginBottom: '1.5rem',
+      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+      textAlign: lang === 'ar' ? 'right' : 'left'
+    }}>
+      <div style={{
+        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+        paddingBottom: '0.875rem',
+        marginBottom: '1rem',
+        textAlign: 'center'
+      }}>
+        <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.1rem', color: '#60a5fa', fontWeight: '700' }}>
+          {t('complaint.companyHeaderTitle')}
+        </h3>
+        <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: '500' }}>
+          {t('complaint.companyHeaderAr')}
+        </p>
+        <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.35rem', lineHeight: '1.4' }}>
+          {t('complaint.crVat')}
+        </div>
+        <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '0.2rem' }}>
+          {t('complaint.companyAddress')}
+        </div>
+        <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '0.2rem' }}>
+          {t('complaint.companyContact')}
+        </div>
+      </div>
+
+      <h4 style={{ margin: '0 0 0.875rem 0', fontSize: '0.9rem', color: '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+        💳 {t('complaint.bankDetailsTitle')}
+      </h4>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.04)',
+          border: '1px solid rgba(16, 185, 129, 0.3)',
+          borderRadius: '8px',
+          padding: '0.875rem',
+          fontSize: '0.8rem',
+        }}>
+          <div style={{ fontWeight: '700', color: '#34d399', fontSize: '0.85rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span>🏛️</span> {t('complaint.snbBankName')}
+          </div>
+          <div style={{ fontFamily: 'monospace', color: '#f8fafc', lineHeight: '1.7' }}>
+            <div>{t('complaint.snbAc')}</div>
+            <div style={{ color: '#60a5fa', fontWeight: '600' }}>{t('complaint.snbIban')}</div>
+            <div style={{ color: '#94a3b8', fontSize: '0.75rem' }}>{t('complaint.snbSwift')}</div>
+          </div>
+        </div>
+
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.04)',
+          border: '1px solid rgba(59, 130, 246, 0.3)',
+          borderRadius: '8px',
+          padding: '0.875rem',
+          fontSize: '0.8rem',
+        }}>
+          <div style={{ fontWeight: '700', color: '#60a5fa', fontSize: '0.85rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span>🏛️</span> {t('complaint.rajhiBankName')}
+          </div>
+          <div style={{ fontFamily: 'monospace', color: '#f8fafc', lineHeight: '1.7' }}>
+            <div>{t('complaint.rajhiAc')}</div>
+            <div style={{ color: '#34d399', fontWeight: '600' }}>{t('complaint.rajhiIban')}</div>
+            <div style={{ color: '#94a3b8', fontSize: '0.75rem' }}>{t('complaint.rajhiSwift')}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ComplaintForm() {
   const router = useRouter();
   const { t, lang } = useLanguage();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [iwRegOption, setIwRegOption] = useState('free'); // 'free' | 'paid'
   
   const [formData, setFormData] = useState({
     phone: '',
@@ -313,7 +391,20 @@ export default function ComplaintForm() {
             <h2>{t('complaint.step5Title')}</h2>
             <div className="form-group">
               <label className="form-label">{t('complaint.dop')}</label>
-              <input type="date" name="dop" className="form-control" value={formData.dop} onChange={handleInputChange} />
+              <input 
+                type="date" 
+                name="dop" 
+                className="form-control" 
+                value={formData.dop} 
+                onChange={handleInputChange} 
+                onClick={(e) => {
+                  try {
+                    if (e.target.showPicker) e.target.showPicker();
+                  } catch (err) {
+                    // ignore if already open
+                  }
+                }}
+              />
             </div>
             <div className="form-group">
               <label className="form-label">{t('complaint.complaintDetails')}</label>
@@ -349,21 +440,111 @@ export default function ComplaintForm() {
         if (formData.warrantystatus === 'IW') {
           return (
             <div className="glass-panel">
-              <h2><span className="badge badge-success" style={{marginRight: lang === 'ar' ? '0' : '8px', marginLeft: lang === 'ar' ? '8px' : '0'}}>{t('complaint.inWarrantyTitle')}</span></h2>
-              <p>{t('complaint.inWarrantyMsg')}</p>
-              <div className="form-group" style={{marginTop: '1.5rem'}}>
-                <label className="form-label">{t('complaint.invoicePhoto')}</label>
-                <label className="file-upload-wrapper">
-                  <input type="file" name="invoiceimg" accept="image/*" onChange={handleFileChange} />
-                  <div className="file-upload-icon">📄</div>
-                  <div className="file-upload-text">{t('complaint.invoicePhotoHelp')}</div>
-                </label>
-                {files.invoiceimg && <div className="file-preview">✅ {files.invoiceimg.name}</div>}
+              <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <h2><span className="badge badge-success" style={{marginRight: lang === 'ar' ? '0' : '8px', marginLeft: lang === 'ar' ? '8px' : '0'}}>{t('complaint.inWarrantyTitle')}</span></h2>
               </div>
-              {error && <p style={{color: 'var(--error-color)'}}>{error}</p>}
-              <button className="btn btn-primary" onClick={() => submitRegistration('accepted')} disabled={!files.invoiceimg || loading}>
-                {loading ? <div className="spinner" /> : t('complaint.completeRegBtn')}
-              </button>
+              <p>{t('complaint.inWarrantyMsg')}</p>
+
+              {/* Mode Selection Tabs */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '0.75rem',
+                margin: '1.5rem 0',
+                background: 'rgba(15, 23, 42, 0.6)',
+                padding: '0.5rem',
+                borderRadius: '10px',
+                border: '1px solid var(--border-color)'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setIwRegOption('free')}
+                  style={{
+                    padding: '0.75rem 0.5rem',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: iwRegOption === 'free' ? 'var(--primary-color)' : 'transparent',
+                    color: iwRegOption === 'free' ? '#ffffff' : 'var(--text-secondary)',
+                    fontWeight: '600',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  🟢 {t('complaint.freeServiceOption')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIwRegOption('paid')}
+                  style={{
+                    padding: '0.75rem 0.5rem',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: iwRegOption === 'paid' ? 'linear-gradient(to right, #3b82f6, #8b5cf6)' : 'transparent',
+                    color: iwRegOption === 'paid' ? '#ffffff' : 'var(--text-secondary)',
+                    fontWeight: '600',
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  💳 {t('complaint.paidServiceOption')}
+                </button>
+              </div>
+
+              {iwRegOption === 'free' ? (
+                <div>
+                  <div className="form-group" style={{marginTop: '1rem'}}>
+                    <label className="form-label">{t('complaint.invoicePhoto')}</label>
+                    <label className="file-upload-wrapper">
+                      <input type="file" name="invoiceimg" accept="image/*" onChange={handleFileChange} />
+                      <div className="file-upload-icon">📄</div>
+                      <div className="file-upload-text">{t('complaint.invoicePhotoHelp')}</div>
+                    </label>
+                    {files.invoiceimg && <div className="file-preview">✅ {files.invoiceimg.name}</div>}
+                  </div>
+                  {error && <p style={{color: 'var(--error-color)'}}>{error}</p>}
+                  <button className="btn btn-primary" onClick={() => submitRegistration('')} disabled={!files.invoiceimg || loading}>
+                    {loading ? <div className="spinner" /> : t('complaint.completeRegBtn')}
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <div style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: '8px', padding: '1rem', marginBottom: '1.25rem' }}>
+                    <p style={{ color: '#93c5fd', fontSize: '0.875rem', margin: 0, lineHeight: '1.5' }}>
+                      💡 <strong>{t('complaint.paidServiceOptionDesc')}</strong>
+                    </p>
+                  </div>
+
+                  <h1 style={{ margin: '1rem 0 1.5rem 0', fontSize: '3rem', textAlign: 'center', color: '#a5b4fc', fontWeight: '700' }}>
+                    250 {lang === 'ar' ? 'ر.س' : 'SAR'}
+                  </h1>
+
+                  <BankDetailsCard t={t} lang={lang} />
+
+                  <div className="form-group">
+                    <label className="form-label">{t('complaint.uploadPaymentProof')}</label>
+                    <label className="file-upload-wrapper">
+                      <input type="file" name="paymentproofimg" accept="image/*" onChange={handleFileChange} />
+                      <div className="file-upload-icon">🧾</div>
+                      <div className="file-upload-text">{t('complaint.uploadPaymentProofHelp')}</div>
+                    </label>
+                    {files.paymentproofimg && <div className="file-preview">✅ {files.paymentproofimg.name}</div>}
+                  </div>
+
+                  {error && <p style={{color: 'var(--error-color)'}}>{error}</p>}
+                  <button 
+                    className="btn btn-primary" 
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, chargeamount: 250, decision: 'accepted' }));
+                      submitRegistration('accepted');
+                    }} 
+                    disabled={!files.paymentproofimg || loading}
+                  >
+                    {loading ? <div className="spinner" /> : t('complaint.submitPaidRegBtn')}
+                  </button>
+                </div>
+              )}
             </div>
           );
         } else {
@@ -377,13 +558,13 @@ export default function ComplaintForm() {
               </div>
               <p style={{ color: 'var(--text-secondary)' }}>{t('complaint.outOfWarrantyMsg')}</p>
               <h1 style={{ margin: '2rem 0', fontSize: '3.5rem', textAlign: 'center', color: '#a5b4fc', fontWeight: '700' }}>
-                {formData.chargeamount} {lang === 'ar' ? 'ر.س' : 'SAR'}
+                {formData.chargeamount || 250} {lang === 'ar' ? 'ر.س' : 'SAR'}
               </h1>
               
               {!declineConfirm && formData.decision !== 'accepted' && (
                 <div style={{ display: 'flex', gap: '1rem' }}>
                   <button className="btn btn-secondary" onClick={() => setDeclineConfirm(true)}>{t('complaint.declineBtn')}</button>
-                  <button className="btn btn-primary" onClick={() => setFormData(prev => ({...prev, decision: 'accepted'}))}>{t('complaint.acceptAndPay')}</button>
+                  <button className="btn btn-primary" onClick={() => setFormData(prev => ({...prev, decision: 'accepted', chargeamount: formData.chargeamount || 250}))}>{t('complaint.acceptAndPay')}</button>
                 </div>
               )}
 
@@ -401,10 +582,8 @@ export default function ComplaintForm() {
 
               {formData.decision === 'accepted' && (
                 <div style={{ marginTop: '1.5rem' }}>
-                  <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem' }}>
-                    <h3 style={{marginBottom: '0.5rem'}}>{t('complaint.bankDetailsTitle')}</h3>
-                    <p style={{fontFamily: 'monospace', lineHeight: '1.8'}}>{t('complaint.bankName')}<br/>{t('complaint.iban')}<br/>{t('complaint.accountName')}</p>
-                  </div>
+                  <BankDetailsCard t={t} lang={lang} />
+
                   <div className="form-group">
                     <label className="form-label">{t('complaint.uploadPaymentProof')}</label>
                     <label className="file-upload-wrapper">
@@ -414,6 +593,17 @@ export default function ComplaintForm() {
                     </label>
                     {files.paymentproofimg && <div className="file-preview">✅ {files.paymentproofimg.name}</div>}
                   </div>
+
+                  <div className="form-group">
+                    <label className="form-label">{t('complaint.invoicePhoto')} ({lang === 'ar' ? 'اختياري' : 'Optional'})</label>
+                    <label className="file-upload-wrapper">
+                      <input type="file" name="invoiceimg" accept="image/*" onChange={handleFileChange} />
+                      <div className="file-upload-icon">📄</div>
+                      <div className="file-upload-text">{t('complaint.invoicePhotoHelp')}</div>
+                    </label>
+                    {files.invoiceimg && <div className="file-preview">✅ {files.invoiceimg.name}</div>}
+                  </div>
+
                   {error && <p style={{color: 'var(--error-color)'}}>{error}</p>}
                   <button className="btn btn-primary" onClick={() => submitRegistration('accepted')} disabled={!files.paymentproofimg || loading}>
                     {loading ? <div className="spinner" /> : t('complaint.submitPaymentProofBtn')}
