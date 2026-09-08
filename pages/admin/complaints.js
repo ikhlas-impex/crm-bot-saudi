@@ -193,6 +193,8 @@ export default function ComplaintsPage() {
         return;
       }
       if (data.warning) alert(data.warning);
+      complaintsCache.delete('PENDING_PAYMENT_VERIFICATION');
+      complaintsCache.delete('ALL');
       await loadComplaints(true);
     } catch (err) {
       console.error(err);
@@ -271,6 +273,12 @@ export default function ComplaintsPage() {
   const activeComplaints = complaints.filter((c) => {
     if (filter === 'PENDING_REVIEW' || filter === 'PENDING_PAYMENT_VERIFICATION' || filter === 'FOLLOW_UP') {
       if (!c.uid || c.status === 'OW_CANCELLED' || (c.status && c.status.toLowerCase().includes('cancelled'))) {
+        return false;
+      }
+    }
+    if (filter === 'PENDING_PAYMENT_VERIFICATION') {
+      const ps = (c.paymentstatus || '').toUpperCase();
+      if (ps === 'REJECTED' || ps === 'VERIFIED') {
         return false;
       }
     }
@@ -518,7 +526,7 @@ export default function ComplaintsPage() {
                 </td>
                 <td style={{ padding: '1rem' }}>
                   <div style={{ marginBottom: '0.5rem' }}>
-                    <span className={`badge ${c.paymentstatus === 'VERIFIED' ? 'badge-success' : c.paymentstatus === 'PENDING_VERIFICATION' ? 'badge-warning' : ''}`} style={{ fontSize: '0.65rem' }}>
+                    <span className={`badge ${c.paymentstatus === 'VERIFIED' ? 'badge-success' : c.paymentstatus === 'PENDING_VERIFICATION' ? 'badge-warning' : c.paymentstatus === 'REJECTED' ? 'badge-danger' : ''}`} style={{ fontSize: '0.65rem' }}>
                       {c.paymentstatus || 'N/A'}
                     </span>
                   </div>

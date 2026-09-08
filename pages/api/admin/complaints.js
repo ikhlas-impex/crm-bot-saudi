@@ -59,7 +59,13 @@ export default async function handler(req, res) {
     }
     
     if (statusFilter) {
-      complaints = complaints.filter(c => c.status === statusFilter);
+      complaints = complaints.filter(c => {
+        if (statusFilter === 'PENDING_PAYMENT_VERIFICATION') {
+          const ps = (c.paymentstatus || '').toUpperCase();
+          if (ps === 'REJECTED' || ps === 'VERIFIED') return false;
+        }
+        return c.status === statusFilter;
+      });
     }
     
     // Sort descending by createdat

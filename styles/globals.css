@@ -345,6 +345,11 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   color: #fbbf24;
 }
 
+.badge-danger {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
 /* RTL & Language Header Utilities */
 .page-top-panel {
   display: flex;
