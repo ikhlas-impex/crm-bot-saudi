@@ -165,6 +165,12 @@ export default function ComplaintForm() {
     }
   };
 
+  const getDefaultCharge = (group) => {
+    if (group === 'Refrigerator') return 300;
+    if (['Big cooler', 'TV', 'Washing Machine'].includes(group)) return 150;
+    return 250;
+  };
+
   const checkEligibility = async () => {
     setLoading(true);
     setError('');
@@ -177,6 +183,9 @@ export default function ComplaintForm() {
       const data = await res.json();
       setEligibilityResult(data);
       if (data.eligible) {
+        if (data.charge) {
+          setFormData(prev => ({ ...prev, chargeamount: data.charge }));
+        }
         setStep(3);
       } else {
         // Stay on step 2, show non-eligible message
@@ -201,7 +210,7 @@ export default function ComplaintForm() {
       setFormData(prev => ({
         ...prev,
         warrantystatus: data.warrantystatus || 'OW',
-        chargeamount: data.chargeamount || 0
+        chargeamount: data.chargeamount || prev.chargeamount || getDefaultCharge(prev.productgroup)
       }));
       setStep(7);
     } catch (err) {
@@ -210,7 +219,7 @@ export default function ComplaintForm() {
       setFormData(prev => ({
         ...prev,
         warrantystatus: 'OW',
-        chargeamount: 150
+        chargeamount: prev.chargeamount || getDefaultCharge(prev.productgroup)
       }));
       setStep(7);
       setError('Note: Warranty check proxy failed. Using mocked Out of Warranty response for testing.');
@@ -517,7 +526,7 @@ export default function ComplaintForm() {
                   </div>
 
                   <h1 style={{ margin: '1rem 0 1.5rem 0', fontSize: '3rem', textAlign: 'center', color: '#a5b4fc', fontWeight: '700' }}>
-                    250 {lang === 'ar' ? 'ر.س' : 'SAR'}
+                    {formData.chargeamount || getDefaultCharge(formData.productgroup)} {lang === 'ar' ? 'ر.س' : 'SAR'}
                   </h1>
 
                   <BankDetailsCard t={t} lang={lang} />
@@ -536,7 +545,8 @@ export default function ComplaintForm() {
                   <button 
                     className="btn btn-primary" 
                     onClick={() => {
-                      setFormData(prev => ({ ...prev, chargeamount: 250, decision: 'accepted' }));
+                      const finalCharge = formData.chargeamount || getDefaultCharge(formData.productgroup);
+                      setFormData(prev => ({ ...prev, chargeamount: finalCharge, decision: 'accepted' }));
                       submitRegistration('accepted');
                     }} 
                     disabled={!files.paymentproofimg || loading}
@@ -558,13 +568,13 @@ export default function ComplaintForm() {
               </div>
               <p style={{ color: 'var(--text-secondary)' }}>{t('complaint.outOfWarrantyMsg')}</p>
               <h1 style={{ margin: '2rem 0', fontSize: '3.5rem', textAlign: 'center', color: '#a5b4fc', fontWeight: '700' }}>
-                {formData.chargeamount || 250} {lang === 'ar' ? 'ر.س' : 'SAR'}
+                {formData.chargeamount || getDefaultCharge(formData.productgroup)} {lang === 'ar' ? 'ر.س' : 'SAR'}
               </h1>
               
               {!declineConfirm && formData.decision !== 'accepted' && (
                 <div style={{ display: 'flex', gap: '1rem' }}>
                   <button className="btn btn-secondary" onClick={() => setDeclineConfirm(true)}>{t('complaint.declineBtn')}</button>
-                  <button className="btn btn-primary" onClick={() => setFormData(prev => ({...prev, decision: 'accepted', chargeamount: formData.chargeamount || 250}))}>{t('complaint.acceptAndPay')}</button>
+                  <button className="btn btn-primary" onClick={() => setFormData(prev => ({...prev, decision: 'accepted', chargeamount: formData.chargeamount || getDefaultCharge(formData.productgroup)}))}>{t('complaint.acceptAndPay')}</button>
                 </div>
               )}
 
