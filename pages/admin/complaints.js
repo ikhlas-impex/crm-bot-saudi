@@ -94,6 +94,7 @@ export default function ComplaintsPage() {
       if (c.customername) allTexts.push(c.customername);
       if (c.city) allTexts.push(c.city);
       if (c.area) allTexts.push(c.area);
+      if (c.address) allTexts.push(c.address);
     });
     batchTranslate(allTexts);
   };
@@ -729,7 +730,7 @@ export default function ComplaintsPage() {
                 <div style={{ margin: '0.5rem 0', fontSize: '0.875rem', display: 'flex' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', flexShrink: 0 }}>Name:</strong> <div style={{ flex: 1 }}><ComplaintText text={selectedComplaintDetails.customername} /></div></div>
                 <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', display: 'inline-block' }}>Phone:</strong> {selectedComplaintDetails.phone}</p>
                 <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', display: 'inline-block' }}>Alt Mobile:</strong> {selectedComplaintDetails.altmobile || 'N/A'}</p>
-                <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', display: 'inline-block' }}>Address:</strong> {selectedComplaintDetails.address || 'N/A'}</p>
+                <div style={{ margin: '0.5rem 0', fontSize: '0.875rem', display: 'flex' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', flexShrink: 0 }}>Address:</strong> <div style={{ flex: 1 }}>{selectedComplaintDetails.address ? <ComplaintText text={selectedComplaintDetails.address} /> : 'N/A'}</div></div>
                 <div style={{ margin: '0.5rem 0', fontSize: '0.875rem', display: 'flex' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', flexShrink: 0 }}>City:</strong> <div style={{ flex: 1 }}>{selectedComplaintDetails.city ? <ComplaintText text={selectedComplaintDetails.city} /> : 'N/A'}</div></div>
                 <div style={{ margin: '0.5rem 0', fontSize: '0.875rem', display: 'flex' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', flexShrink: 0 }}>Area:</strong> <div style={{ flex: 1 }}>{selectedComplaintDetails.area ? <ComplaintText text={selectedComplaintDetails.area} /> : 'N/A'}</div></div>
               </div>

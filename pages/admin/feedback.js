@@ -58,6 +58,7 @@ export default function FeedbackDashboard() {
           const texts = [];
           if (data.customer.city) texts.push(data.customer.city);
           if (data.customer.area) texts.push(data.customer.area);
+          if (data.customer.address) texts.push(data.customer.address);
           if (data.customer.customername) texts.push(data.customer.customername);
           if (data.customer.complaintdetails) texts.push(data.customer.complaintdetails);
           batchTranslate(texts);
@@ -440,7 +441,7 @@ export default function FeedbackDashboard() {
                   {customerDetails.altmobile && <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', display: 'inline-block' }}>Alt Phone:</strong> {customerDetails.altmobile}</p>}
                   
                   <h3 style={{ color: '#a5b4fc', fontSize: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem', marginTop: '1.5rem', marginBottom: '1rem' }}>Location</h3>
-                  <div style={{ margin: '0.5rem 0', fontSize: '0.875rem', display: 'flex' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', flexShrink: 0 }}>Address:</strong> <div style={{ flex: 1 }}>{customerDetails.address || 'N/A'}</div></div>
+                  <div style={{ margin: '0.5rem 0', fontSize: '0.875rem', display: 'flex' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', flexShrink: 0 }}>Address:</strong> <div style={{ flex: 1 }}>{customerDetails.address ? <ComplaintText text={customerDetails.address} /> : 'N/A'}</div></div>
                   <div style={{ margin: '0.5rem 0', fontSize: '0.875rem', display: 'flex' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', flexShrink: 0 }}>City:</strong> <div style={{ flex: 1 }}>{customerDetails.city ? <ComplaintText text={customerDetails.city} /> : 'N/A'}</div></div>
                   <div style={{ margin: '0.5rem 0', fontSize: '0.875rem', display: 'flex' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', flexShrink: 0 }}>Area:</strong> <div style={{ flex: 1 }}>{customerDetails.area ? <ComplaintText text={customerDetails.area} /> : 'N/A'}</div></div>
                 </div>
