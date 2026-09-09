@@ -1,6 +1,7 @@
 import { google } from 'googleapis';
 import formidable from 'formidable';
 import fs from 'fs';
+import { verifyMoyasarPayment } from '@/lib/moyasar';
 
 // File uploads need the raw body - disable Next's default JSON body parser.
 export const config = {
@@ -109,9 +110,24 @@ export default async function handler(req, res) {
 
     const warrantystatus = fields.warrantystatus; // 'IW' | 'OW'
     const decision = fields.decision || '';        // 'accepted' | 'cancelled' - OW only
+    const paymentId = fields.payment_id || '';    // Moyasar Payment ID
 
     if (warrantystatus !== 'IW' && warrantystatus !== 'OW' && decision !== 'accepted' && decision !== 'cancelled') {
       return res.status(400).json({ success: false, message: 'Invalid warrantystatus/decision combination' });
+    }
+
+    // If Moyasar payment_id is provided, verify it with Moyasar gateway API first
+    let isOnlinePaid = false;
+    if (paymentId) {
+      const chargeAmount = fields.chargeamount || 0;
+      const verification = await verifyMoyasarPayment(paymentId, chargeAmount);
+      if (!verification.verified) {
+        return res.status(400).json({
+          success: false,
+          message: verification.reason || 'Moyasar payment verification failed',
+        });
+      }
+      isOnlinePaid = true;
     }
 
     const auth = getAuth();
@@ -129,7 +145,13 @@ export default async function handler(req, res) {
     let paymentstatus = 'N/A';
     let sendConfirmationNow = false;
 
-    if (decision === 'accepted') {
+    if (isOnlinePaid) {
+      seq += 1;
+      uid = `IMX-KSA-SVC-${String(seq).padStart(5, '0')}`;
+      status = 'REGISTERED';
+      paymentstatus = 'PAID_ONLINE';
+      sendConfirmationNow = true;
+    } else if (decision === 'accepted') {
       seq += 1;
       uid = `IMX-KSA-SVC-${String(seq).padStart(5, '0')}`;
       status = 'PENDING_PAYMENT_VERIFICATION';
@@ -144,12 +166,14 @@ export default async function handler(req, res) {
       cancelreason = 'OW - Customer not willing to pay';
     }
 
-    const [modelserialimg, productimg, invoiceimg, paymentproofimg] = await Promise.all([
+    const [modelserialimg, productimg, invoiceimg, uploadedPaymentProof] = await Promise.all([
       uploadToDrive(auth, files.modelserialimg),
       uploadToDrive(auth, files.productimg),
       uploadToDrive(auth, files.invoiceimg),
       uploadToDrive(auth, files.paymentproofimg),
     ]);
+
+    const finalPaymentProof = isOnlinePaid ? `Moyasar ID: ${paymentId}` : uploadedPaymentProof;
 
     const now = new Date().toISOString();
 
@@ -171,7 +195,7 @@ export default async function handler(req, res) {
       fields.dop || '',
       warrantystatus,
       fields.chargeamount || 0,
-      paymentproofimg,
+      finalPaymentProof,
       paymentstatus,
       status,
       fields.servicecentre || '',

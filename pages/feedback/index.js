@@ -321,7 +321,7 @@ export default function FeedbackPage() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem', fontFamily: "'Outfit', sans-serif" }}>
       <Head>
-        <title>Impex - {t('feedback.title')}</title>
+        <title>{`Impex - ${t('feedback.title')}`}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
 

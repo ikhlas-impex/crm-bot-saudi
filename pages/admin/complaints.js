@@ -728,7 +728,8 @@ export default function ComplaintsPage() {
                 <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', display: 'inline-block' }}>Phone:</strong> {selectedComplaintDetails.phone}</p>
                 <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', display: 'inline-block' }}>Alt Mobile:</strong> {selectedComplaintDetails.altmobile || 'N/A'}</p>
                 <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', display: 'inline-block' }}>Address:</strong> {selectedComplaintDetails.address || 'N/A'}</p>
-                <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', display: 'inline-block' }}>City/Area:</strong> {[selectedComplaintDetails.city, selectedComplaintDetails.area].filter(Boolean).join(', ') || 'N/A'}</p>
+                <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', display: 'inline-block' }}>City:</strong> {selectedComplaintDetails.city || 'N/A'}</p>
+                <p style={{ margin: '0.5rem 0', fontSize: '0.875rem' }}><strong style={{ color: 'var(--text-secondary)', width: '120px', display: 'inline-block' }}>Area:</strong> {selectedComplaintDetails.area || 'N/A'}</p>
               </div>
               
               <div>

@@ -24,7 +24,7 @@ export default function AdminHub() {
   return (
     <div className="container" style={{ display: 'flex', alignItems: 'center', minHeight: '100vh', flexDirection: 'column', paddingTop: '4rem' }}>
       <Head>
-        <title>Impex - {t('admin.hubTitle')}</title>
+        <title>{`Impex - ${t('admin.hubTitle')}`}</title>
       </Head>
       <div style={{ width: '100%', maxWidth: '600px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <h1 style={{ margin: 0, fontSize: '2rem', textAlign: 'start', background: 'linear-gradient(to right, #60a5fa, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>

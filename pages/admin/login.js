@@ -41,7 +41,7 @@ export default function AdminLogin() {
   return (
     <div className="container" style={{ display: 'flex', alignItems: 'center', minHeight: '100vh' }}>
       <Head>
-        <title>Impex - {t('admin.loginTitle')}</title>
+        <title>{`Impex - ${t('admin.loginTitle')}`}</title>
       </Head>
       <div className="glass-panel" style={{ width: '100%', maxWidth: '400px', margin: '0 auto', animation: 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>

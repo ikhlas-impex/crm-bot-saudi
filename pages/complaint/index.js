@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import imageCompression from 'browser-image-compression';
 import { useLanguage } from '@/lib/LanguageContext';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import MoyasarPaymentForm from '@/components/MoyasarPaymentForm';
 
 function BankDetailsCard({ t, lang }) {
   return (
@@ -89,6 +90,7 @@ export default function ComplaintForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [iwRegOption, setIwRegOption] = useState('free'); // 'free' | 'paid'
+  const [showBankFallback, setShowBankFallback] = useState(false);
   
   const [formData, setFormData] = useState({
     phone: '',
@@ -133,7 +135,11 @@ export default function ComplaintForm() {
     if (router.query.phone) {
       setFormData(prev => ({ ...prev, phone: router.query.phone }));
     }
-  }, [router.query.phone]);
+    // Handle redirect callback from Moyasar 3D Secure verification
+    if (router.query.id && (router.query.status === 'paid' || !router.query.status) && step < 8) {
+      submitOnlineRegistration(router.query.id);
+    }
+  }, [router.query.phone, router.query.id, router.query.status]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -223,6 +229,41 @@ export default function ComplaintForm() {
       }));
       setStep(7);
       setError('Note: Warranty check proxy failed. Using mocked Out of Warranty response for testing.');
+    }
+    setLoading(false);
+  };
+
+  const submitOnlineRegistration = async (paymentId) => {
+    setLoading(true);
+    setError('');
+    const finalCharge = formData.chargeamount || getDefaultCharge(formData.productgroup);
+    
+    try {
+      const formPayload = new FormData();
+      Object.keys(formData).forEach(key => formPayload.append(key, formData[key]));
+      formPayload.set('chargeamount', finalCharge);
+      formPayload.set('decision', 'accepted');
+      formPayload.set('payment_id', paymentId);
+      
+      if (files.modelserialimg) formPayload.append('modelserialimg', files.modelserialimg);
+      if (files.productimg) formPayload.append('productimg', files.productimg);
+      if (files.invoiceimg) formPayload.append('invoiceimg', files.invoiceimg);
+
+      const res = await fetch('/api/complaint/register', {
+        method: 'POST',
+        body: formPayload,
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        setFinalResult(data);
+        setStep(8);
+      } else {
+        setError(data.message || t('common.error'));
+      }
+    } catch (err) {
+      console.error('Online payment registration error:', err);
+      setError(t('common.error'));
     }
     setLoading(false);
   };
@@ -529,30 +570,70 @@ export default function ComplaintForm() {
                     {formData.chargeamount || getDefaultCharge(formData.productgroup)} {lang === 'ar' ? 'ر.س' : 'SAR'}
                   </h1>
 
-                  <BankDetailsCard t={t} lang={lang} />
+                  {/* Moyasar Online Payment Widget */}
+                  <MoyasarPaymentForm
+                    amount={formData.chargeamount || getDefaultCharge(formData.productgroup)}
+                    description={`Impex Paid Service Ticket (${formData.productgroup} - ${formData.model})`}
+                    onSuccess={(paymentId) => submitOnlineRegistration(paymentId)}
+                    onError={(err) => setError(err)}
+                    lang={lang}
+                  />
 
-                  <div className="form-group">
-                    <label className="form-label">{t('complaint.uploadPaymentProof')}</label>
-                    <label className="file-upload-wrapper">
-                      <input type="file" name="paymentproofimg" accept="image/*" onChange={handleFileChange} />
-                      <div className="file-upload-icon">🧾</div>
-                      <div className="file-upload-text">{t('complaint.uploadPaymentProofHelp')}</div>
-                    </label>
-                    {files.paymentproofimg && <div className="file-preview">✅ {files.paymentproofimg.name}</div>}
+                  {/* Collapsible Manual Bank Details Fallback Button */}
+                  <div style={{ textAlign: 'center', marginTop: '1.5rem', marginBottom: '1rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowBankFallback(prev => !prev)}
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        color: '#cbd5e1',
+                        padding: '0.65rem 1.25rem',
+                        borderRadius: '8px',
+                        fontSize: '0.85rem',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      {showBankFallback ? t('complaint.hideBankTransferBtn') : t('complaint.payViaBankTransferBtn')}
+                    </button>
                   </div>
 
-                  {error && <p style={{color: 'var(--error-color)'}}>{error}</p>}
-                  <button 
-                    className="btn btn-primary" 
-                    onClick={() => {
-                      const finalCharge = formData.chargeamount || getDefaultCharge(formData.productgroup);
-                      setFormData(prev => ({ ...prev, chargeamount: finalCharge, decision: 'accepted' }));
-                      submitRegistration('accepted');
-                    }} 
-                    disabled={!files.paymentproofimg || loading}
-                  >
-                    {loading ? <div className="spinner" /> : t('complaint.submitPaidRegBtn')}
-                  </button>
+                  {showBankFallback && (
+                    <div style={{
+                      marginTop: '1rem',
+                      background: 'rgba(15, 23, 42, 0.75)',
+                      padding: '1.25rem',
+                      borderRadius: '12px',
+                      border: '1px solid rgba(255, 255, 255, 0.15)'
+                    }}>
+                      <BankDetailsCard t={t} lang={lang} />
+
+                      <div className="form-group">
+                        <label className="form-label">{t('complaint.uploadPaymentProof')}</label>
+                        <label className="file-upload-wrapper">
+                          <input type="file" name="paymentproofimg" accept="image/*" onChange={handleFileChange} />
+                          <div className="file-upload-icon">🧾</div>
+                          <div className="file-upload-text">{t('complaint.uploadPaymentProofHelp')}</div>
+                        </label>
+                        {files.paymentproofimg && <div className="file-preview">✅ {files.paymentproofimg.name}</div>}
+                      </div>
+
+                      {error && <p style={{color: 'var(--error-color)'}}>{error}</p>}
+                      <button 
+                        className="btn btn-primary" 
+                        onClick={() => {
+                          const finalCharge = formData.chargeamount || getDefaultCharge(formData.productgroup);
+                          setFormData(prev => ({ ...prev, chargeamount: finalCharge, decision: 'accepted' }));
+                          submitRegistration('accepted');
+                        }} 
+                        disabled={!files.paymentproofimg || loading}
+                      >
+                        {loading ? <div className="spinner" /> : t('complaint.submitPaidRegBtn')}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -592,32 +673,72 @@ export default function ComplaintForm() {
 
               {formData.decision === 'accepted' && (
                 <div style={{ marginTop: '1.5rem' }}>
-                  <BankDetailsCard t={t} lang={lang} />
+                  {/* Moyasar Online Payment Widget */}
+                  <MoyasarPaymentForm
+                    amount={formData.chargeamount || getDefaultCharge(formData.productgroup)}
+                    description={`Impex Service Ticket (${formData.productgroup} - ${formData.model})`}
+                    onSuccess={(paymentId) => submitOnlineRegistration(paymentId)}
+                    onError={(err) => setError(err)}
+                    lang={lang}
+                  />
 
-                  <div className="form-group">
-                    <label className="form-label">{t('complaint.uploadPaymentProof')}</label>
-                    <label className="file-upload-wrapper">
-                      <input type="file" name="paymentproofimg" accept="image/*" onChange={handleFileChange} />
-                      <div className="file-upload-icon">🧾</div>
-                      <div className="file-upload-text">{t('complaint.uploadPaymentProofHelp')}</div>
-                    </label>
-                    {files.paymentproofimg && <div className="file-preview">✅ {files.paymentproofimg.name}</div>}
+                  {/* Collapsible Manual Bank Details Fallback Button */}
+                  <div style={{ textAlign: 'center', marginTop: '1.5rem', marginBottom: '1rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowBankFallback(prev => !prev)}
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        color: '#cbd5e1',
+                        padding: '0.65rem 1.25rem',
+                        borderRadius: '8px',
+                        fontSize: '0.85rem',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      {showBankFallback ? t('complaint.hideBankTransferBtn') : t('complaint.payViaBankTransferBtn')}
+                    </button>
                   </div>
 
-                  <div className="form-group">
-                    <label className="form-label">{t('complaint.invoicePhoto')} ({lang === 'ar' ? 'اختياري' : 'Optional'})</label>
-                    <label className="file-upload-wrapper">
-                      <input type="file" name="invoiceimg" accept="image/*" onChange={handleFileChange} />
-                      <div className="file-upload-icon">📄</div>
-                      <div className="file-upload-text">{t('complaint.invoicePhotoHelp')}</div>
-                    </label>
-                    {files.invoiceimg && <div className="file-preview">✅ {files.invoiceimg.name}</div>}
-                  </div>
+                  {showBankFallback && (
+                    <div style={{
+                      marginTop: '1rem',
+                      background: 'rgba(15, 23, 42, 0.75)',
+                      padding: '1.25rem',
+                      borderRadius: '12px',
+                      border: '1px solid rgba(255, 255, 255, 0.15)'
+                    }}>
+                      <BankDetailsCard t={t} lang={lang} />
 
-                  {error && <p style={{color: 'var(--error-color)'}}>{error}</p>}
-                  <button className="btn btn-primary" onClick={() => submitRegistration('accepted')} disabled={!files.paymentproofimg || loading}>
-                    {loading ? <div className="spinner" /> : t('complaint.submitPaymentProofBtn')}
-                  </button>
+                      <div className="form-group">
+                        <label className="form-label">{t('complaint.uploadPaymentProof')}</label>
+                        <label className="file-upload-wrapper">
+                          <input type="file" name="paymentproofimg" accept="image/*" onChange={handleFileChange} />
+                          <div className="file-upload-icon">🧾</div>
+                          <div className="file-upload-text">{t('complaint.uploadPaymentProofHelp')}</div>
+                        </label>
+                        {files.paymentproofimg && <div className="file-preview">✅ {files.paymentproofimg.name}</div>}
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">{t('complaint.invoicePhoto')} ({lang === 'ar' ? 'اختياري' : 'Optional'})</label>
+                        <label className="file-upload-wrapper">
+                          <input type="file" name="invoiceimg" accept="image/*" onChange={handleFileChange} />
+                          <div className="file-upload-icon">📄</div>
+                          <div className="file-upload-text">{t('complaint.invoicePhotoHelp')}</div>
+                        </label>
+                        {files.invoiceimg && <div className="file-preview">✅ {files.invoiceimg.name}</div>}
+                      </div>
+
+                      {error && <p style={{color: 'var(--error-color)'}}>{error}</p>}
+                      <button className="btn btn-primary" onClick={() => submitRegistration('accepted')} disabled={!files.paymentproofimg || loading}>
+                        {loading ? <div className="spinner" /> : t('complaint.submitPaymentProofBtn')}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -705,7 +826,7 @@ export default function ComplaintForm() {
   return (
     <div className="container">
       <Head>
-        <title>Impex - {t('complaint.headerTitle')}</title>
+        <title>{`Impex - ${t('complaint.headerTitle')}`}</title>
       </Head>
       
       <div className="page-top-panel">
