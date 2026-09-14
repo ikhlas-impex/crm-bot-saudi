@@ -46,6 +46,26 @@ function parseDateToTimestamp(dateStr) {
   return 0;
 }
 
+function getTimeAgo(dateStr) {
+  if (!dateStr) return '';
+  const ts = Date.parse(dateStr) || parseDateToTimestamp(dateStr);
+  if (!ts || isNaN(ts)) return '';
+  const seconds = Math.floor((new Date().getTime() - ts) / 1000);
+  
+  if (seconds < 0) return 'Just now';
+  if (seconds < 60) return 'Just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min${minutes > 1 ? 's' : ''} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hr${hours > 1 ? 's' : ''} ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days} day${days > 1 ? 's' : ''} ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months} month${months > 1 ? 's' : ''} ago`;
+  const years = Math.floor(days / 365);
+  return `${years} year${years > 1 ? 's' : ''} ago`;
+}
+
 export default function ComplaintsPage() {
   const router = useRouter();
   const { t } = useLanguage();
@@ -518,7 +538,12 @@ export default function ComplaintsPage() {
                     {c.uid || '(cancelled)'}
                   </button>
                 </td>
-                <td style={{ padding: '1rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{c.date}</td>
+                <td style={{ padding: '1rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                  <div>{c.date}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', opacity: 0.8, marginTop: '0.25rem' }}>
+                    {getTimeAgo(c.createdat || c.date)}
+                  </div>
+                </td>
                 <td style={{ padding: '1rem' }}>
                   <div style={{ fontWeight: 500 }}><ComplaintText text={c.customername} /></div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>{c.phone}</div>
