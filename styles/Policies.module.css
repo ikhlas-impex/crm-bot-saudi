@@ -1,0 +1,56 @@
+.page { background: #090d0b; color: #eff6f1; min-height: 65vh; }
+.header { max-width: 1120px; margin: auto; padding: 28px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ffffff15; }
+.header > div { display: flex; align-items: center; gap: 24px; }
+.header a, .header button { color: #c7e6d3; font-size: 14px; text-decoration: none; }
+.header button { border: 1px solid #60836c; border-radius: 24px; background: none; padding: 9px 17px; font-family: inherit; cursor: pointer; }
+.logo { position: relative; display: block; width: 130px; height: 35px; overflow: hidden; flex-shrink: 0; }
+.logo img { position: absolute; width: 130%; height: auto; max-width: none; left: -15%; top: 50%; transform: translateY(-50%); }
+.main { max-width: 1000px; padding: 65px 28px 75px; margin: auto; }
+.eyebrow { font-size: 11px; letter-spacing: 1.8px; color: #a6f4c5; }
+.main h1 { font-size: clamp(32px, 4vw, 49px); text-align: start; letter-spacing: -1px; font-weight: 500; margin: 16px 0 25px; background: none; color: #f4f7f5; -webkit-text-fill-color: initial; }
+.main h2 { font-size: 23px; margin: 32px 0 14px; font-weight: 500; color: #e1f1e7; }
+.main p, .main li { color: #b0c1b6; font-size: 16px; line-height: 1.9; }
+.main p { margin-bottom: 15px; }
+.main a { color: #b8f3cf; text-underline-offset: 4px; }
+.main ul, .main ol { padding-inline-start: 24px; margin-bottom: 18px; }
+.main li { padding-inline-start: 5px; margin-bottom: 7px; }
+.policyNav { display: flex; flex-wrap: wrap; gap: 10px; padding-bottom: 27px; margin-bottom: 32px; border-bottom: 1px solid #ffffff18; }
+.policyNav a { color: #b8d0c0; font-size: 12px; border: 1px solid #ffffff20; padding: 8px 12px; border-radius: 24px; text-decoration: none; }
+.policyNav a:hover { border-color: #a6f4c5; }
+.article { max-width: 800px; }
+.article .date { color: #91a799; font-size: 13px; }
+.lead { max-width: 780px; }
+.notice { background: #a6f4c50c; border: 1px solid #a6f4c52b; border-radius: 12px; padding: 18px 22px; margin: 25px 0; color: #c0e7ce; font-size: 14px; line-height: 1.8; }
+.tableWrap { width: 100%; overflow-x: auto; border: 1px solid #ffffff1c; border-radius: 12px; }
+.tableWrap table { width: 100%; border-collapse: collapse; font-size: 14px; text-align: start; }
+.tableWrap caption { text-align: start; padding: 16px 20px; color: #a6f4c5; background: #15251b; }
+.tableWrap th, .tableWrap td { text-align: start; padding: 18px 20px; border-bottom: 1px solid #ffffff12; line-height: 1.7; }
+.tableWrap thead { background: #142018; color: #b7d1c0; }
+.tableWrap tbody th { font-weight: 500; min-width: 160px; }
+.tableWrap td { color: #b0c1b6; }
+.tableWrap td:last-child { min-width: 160px; color: #c6f6d7; }
+.priceGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 23px; }
+.priceGrid > div { display: flex; justify-content: space-between; gap: 16px; border: 1px solid #ffffff18; border-radius: 10px; padding: 17px; font-size: 14px; }
+.priceGrid strong { color: #a6f4c5; white-space: nowrap; }
+.actions { display: flex; gap: 12px; flex-wrap: wrap; margin: 30px 0; }
+.actions a { padding: 12px 18px; border-radius: 24px; border: 1px solid #a6f4c54a; text-decoration: none; font-size: 14px; }
+.footer { background: #0b110d; color: #dfe9e2; border-top: 1px solid #ffffff16; padding: 45px 28px 0; }
+.footerInner { max-width: 1120px; margin: auto; display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 50px; padding-bottom: 35px; }
+.footer h2 { font-size: 16px; font-weight: 500; margin: 20px 0 12px; }
+.footer h3 { font-size: 14px; font-weight: 500; margin: 0 0 17px; }
+.footer p, .footer address { font-size: 12px; color: #a4b6a9; line-height: 1.9; margin-bottom: 14px; font-style: normal; }
+.footerLinks, .contact { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.footer a { color: #b7d6c1; font-size: 12px; text-decoration: none; overflow-wrap: anywhere; }
+.footer a:hover { text-decoration: underline; text-underline-offset: 4px; }
+.copyright { max-width: 1120px; margin: auto; border-top: 1px solid #ffffff12; padding: 22px 0; font-size: 11px; color: #91a497; }
+.paymentMethods { border-top: 1px solid #b9c6be50; margin-top: 25px; padding-top: 22px; }
+.paymentLogos { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; }
+.paymentLogos > span { display: grid; place-items: center; background: #fff; width: 82px; height: 50px; border: 1px solid #e1e7e3; border-radius: 7px; }
+.paymentLogos img { width: 66px; height: 36px; object-fit: contain; }
+.paymentMethods p { color: #64746a; text-align: center; font-size: 12px; line-height: 1.6; margin: 13px 0 0; }
+.page .paymentMethods p { color: #a4b6a9; }
+.paymentPolicyLinks { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; }
+.paymentPolicyLinks a { color: #136d38; text-underline-offset: 3px; }
+.page :is(a, button):focus-visible, .footer a:focus-visible { outline: 2px solid #a6f4c5; outline-offset: 4px; }
+@media(max-width:760px) { .footerInner { grid-template-columns: 1fr 1fr; gap: 30px; } .company { grid-column: 1 / -1; } .main { padding-top: 40px; } }
+@media(max-width:480px) { .header { padding: 22px; } .header > div { gap: 12px; } .header a, .header button { font-size: 12px; } .logo { width: 106px; height: 29px; } .main { padding-inline: 20px; } .priceGrid, .footerInner { grid-template-columns: 1fr; } .tableWrap th, .tableWrap td { padding: 12px; } .main p,.main li { font-size: 15px; } .paymentLogos { gap: 6px; } .paymentLogos > span { width: 66px; height: 43px; } .paymentLogos img { width: 54px; height: 30px; } }

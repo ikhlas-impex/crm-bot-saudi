@@ -1,8 +1,13 @@
 import Head from "next/head";
 import Link from "next/link";
 import { useState } from "react";
+import PaymentMethods from "@/components/PaymentMethods";
+import { policyLinks } from "@/lib/business";
+import { useLanguage } from "@/lib/LanguageContext";
+import policyStyles from "@/styles/Policies.module.css";
 
 export default function Payment() {
+  const { lang } = useLanguage();
   const [dealerid, setDealerid] = useState("");
   const [mobile, setMobile] = useState("");
   const [dealer, setDealer] = useState(null);
@@ -83,6 +88,10 @@ export default function Payment() {
             </>
           )}
           {msg && <p className="landing-error">{msg}</p>}
+          <PaymentMethods />
+          <nav className={policyStyles.paymentPolicyLinks} aria-label="Payment policies">
+            {policyLinks.map(link => <Link key={link.href} href={`${link.href}?lang=${lang}`}>{link[lang]}</Link>)}
+          </nav>
         </div>
       </main>
     </>

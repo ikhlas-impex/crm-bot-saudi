@@ -60,6 +60,5 @@ export default function Home() {
    <section className={s.services} id="services"><div className={s.sectionIntro}><div><span className={s.kicker}>{c.section}</span><h2>{c.heading}</h2></div><p>{c.detail}</p></div><div className={s.cards}>{c.cards.map((title, i) => <a key={title} href={destinations[i]} className={s.serviceCard} {...(i === 2 ? external : {})}><div className={s.cardTop}><div className={s.serviceIcon}><Icon name={["tool", "card", "chat"][i]} width="25" height="25"/></div><span>0{i + 1}</span></div><h3>{title}</h3><p>{c.descriptions[i]}</p><div className={s.cardLink}>{c.links[i]}<Icon name="arrow"/></div></a>)}</div></section>
    <section className={s.how} id="how-it-works"><h2>{c.stepsTitle}</h2><div className={s.steps}>{c.steps.map((step, i) => <div key={step}><span>0{i + 1}</span><h3>{step}</h3><p>{c.stepsText[i]}</p></div>)}</div></section>
   </main>
-  <footer className={s.footer}><div><span className={`${s.logo} ${s.footerLogo}`}><Image src="/IMPEX%20LOGO.png" alt="Impex" width={4590} height={2000} sizes="110px" /></span><span>{c.footer}</span></div><span>{c.country}</span><a href={WHATSAPP_URL} {...external}>{c.direct}<Icon name="arrow"/></a></footer>
  </div>;
 }
