@@ -6,75 +6,160 @@ import { useLanguage } from '@/lib/LanguageContext';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 function BankDetailsCard({ t, lang }) {
-  return (
-    <div style={{
-      background: 'rgba(15, 23, 42, 0.75)',
-      border: '1px solid rgba(255, 255, 255, 0.15)',
-      borderRadius: '12px',
-      padding: '1.25rem',
-      marginBottom: '1.5rem',
-      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
-      textAlign: lang === 'ar' ? 'right' : 'left'
-    }}>
-      <div style={{
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        paddingBottom: '0.875rem',
-        marginBottom: '1rem',
-        textAlign: 'center'
-      }}>
-        <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.1rem', color: '#60a5fa', fontWeight: '700' }}>
-          {t('complaint.companyHeaderTitle')}
-        </h3>
-        <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: '500' }}>
-          {t('complaint.companyHeaderAr')}
-        </p>
-        <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.35rem', lineHeight: '1.4' }}>
-          {t('complaint.crVat')}
-        </div>
-        <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '0.2rem' }}>
-          {t('complaint.companyAddress')}
-        </div>
-        <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '0.2rem' }}>
-          {t('complaint.companyContact')}
+  const [activeTab, setActiveTab] = useState('SNB');
+  const [copiedField, setCopiedField] = useState(null);
+
+  const bankData = {
+    SNB: {
+      name: t('complaint.snbBankName'),
+      recipient: lang === 'ar' ? 'شركة الأجهزة الذكية التجارية' : 'SMART APPLIANCES TRADING COMPANY',
+      currency: 'SAR',
+      accountNumber: '62500000203709',
+      iban: 'SA0210000062500000203709',
+      swift: 'NCBKSAJE',
+    },
+    RAJHI: {
+      name: t('complaint.rajhiBankName'),
+      recipient: lang === 'ar' ? 'شركة الأجهزة الذكية التجارية' : 'SMART APPLIANCES TRADING COMPANY',
+      currency: 'SAR',
+      accountNumber: '504608010804400',
+      iban: 'SA4380000504608010804400',
+      swift: 'RJHISARI',
+    }
+  };
+
+  const currentBank = bankData[activeTab];
+
+  const handleCopy = (text, field) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const handleShare = async () => {
+    const text = `${currentBank.name}\n${lang === 'ar' ? 'المستفيد' : 'Recipient'}: ${currentBank.recipient}\n${lang === 'ar' ? 'رقم الحساب' : 'Account Number'}: ${currentBank.accountNumber}\n${lang === 'ar' ? 'الآيبان' : 'IBAN'}: ${currentBank.iban}\n${lang === 'ar' ? 'رمز سويفت' : 'SWIFT'}: ${currentBank.swift}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: lang === 'ar' ? 'تفاصيل الحساب البنكي' : 'Bank Account Details',
+          text: text,
+        });
+      } catch (err) {
+        console.error('Error sharing:', err);
+      }
+    } else {
+      handleCopy(text, 'all');
+      alert(lang === 'ar' ? 'تم نسخ التفاصيل للحافظة' : 'Details copied to clipboard!');
+    }
+  };
+
+  const handleDownload = () => {
+    const text = `${currentBank.name}\n${lang === 'ar' ? 'المستفيد' : 'Recipient'}: ${currentBank.recipient}\n${lang === 'ar' ? 'رقم الحساب' : 'Account Number'}: ${currentBank.accountNumber}\n${lang === 'ar' ? 'الآيبان' : 'IBAN'}: ${currentBank.iban}\n${lang === 'ar' ? 'رمز سويفت' : 'SWIFT'}: ${currentBank.swift}`;
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Bank_Details_${activeTab}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const CopyIcon = ({ isCopied }) => (
+    isCopied ? (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    ) : (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ cursor: 'pointer' }}>
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+      </svg>
+    )
+  );
+
+  const renderRow = (label, value, fieldId) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+      <span style={{ color: '#9ca3af', fontSize: '0.85rem' }}>{label}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span style={{ color: '#e5e7eb', fontSize: '0.9rem', fontWeight: '500', textAlign: lang === 'ar' ? 'left' : 'right' }}>{value}</span>
+        <div onClick={() => handleCopy(value, fieldId)} style={{ display: 'flex', alignItems: 'center', padding: '4px' }}>
+          <CopyIcon isCopied={copiedField === fieldId} />
         </div>
       </div>
+    </div>
+  );
 
-      <h4 style={{ margin: '0 0 0.875rem 0', fontSize: '0.9rem', color: '#a5b4fc', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-        💳 {t('complaint.bankDetailsTitle')}
-      </h4>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.04)',
-          border: '1px solid rgba(16, 185, 129, 0.3)',
-          borderRadius: '8px',
-          padding: '0.875rem',
-          fontSize: '0.8rem',
-        }}>
-          <div style={{ fontWeight: '700', color: '#34d399', fontSize: '0.85rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <span>🏛️</span> {t('complaint.snbBankName')}
-          </div>
-          <div style={{ fontFamily: 'monospace', color: '#f8fafc', lineHeight: '1.7' }}>
-            <div>{t('complaint.snbAc')}</div>
-            <div style={{ color: '#60a5fa', fontWeight: '600' }}>{t('complaint.snbIban')}</div>
-            <div style={{ color: '#94a3b8', fontSize: '0.75rem' }}>{t('complaint.snbSwift')}</div>
-          </div>
+  return (
+    <div style={{
+      background: '#09090b',
+      border: '1px solid rgba(255,255,255,0.1)',
+      borderRadius: '16px',
+      padding: '1.25rem',
+      marginBottom: '1.5rem',
+      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+      textAlign: lang === 'ar' ? 'right' : 'left',
+      color: '#ffffff',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
+    }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '700' }}>
+          {lang === 'ar' ? 'تفاصيل الحساب' : 'Account details'}
+        </h2>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', color: '#d1d5db' }}>
+          <span>🇸🇦</span>
+          <span style={{ fontWeight: '600' }}>{lang === 'ar' ? 'رئيسي' : 'Main'}</span>
+          <span>·</span>
+          <span>SAR</span>
         </div>
 
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.04)',
-          border: '1px solid rgba(59, 130, 246, 0.3)',
-          borderRadius: '8px',
-          padding: '0.875rem',
-          fontSize: '0.8rem',
-        }}>
-          <div style={{ fontWeight: '700', color: '#60a5fa', fontSize: '0.85rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <span>🏛️</span> {t('complaint.rajhiBankName')}
+        {/* Actions Row */}
+        <div style={{ display: 'flex', gap: '12px', marginTop: '4px', marginBottom: '8px' }}>
+          <button onClick={handleShare} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', padding: '8px 16px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+            {lang === 'ar' ? 'مشاركة' : 'Share'}
+          </button>
+          <button onClick={handleDownload} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', padding: '8px 16px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: '500', cursor: 'pointer' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            {lang === 'ar' ? 'تحميل' : 'Download'}
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', padding: '4px' }}>
+          <button 
+            onClick={() => setActiveTab('SNB')}
+            style={{ flex: 1, padding: '8px', border: 'none', background: activeTab === 'SNB' ? 'rgba(255,255,255,0.15)' : 'transparent', color: activeTab === 'SNB' ? '#fff' : '#9ca3af', borderRadius: '8px', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s' }}
+          >
+            {t('complaint.snbBankName')}
+          </button>
+          <button 
+            onClick={() => setActiveTab('RAJHI')}
+            style={{ flex: 1, padding: '8px', border: 'none', background: activeTab === 'RAJHI' ? 'rgba(255,255,255,0.15)' : 'transparent', color: activeTab === 'RAJHI' ? '#fff' : '#9ca3af', borderRadius: '8px', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s' }}
+          >
+            {t('complaint.rajhiBankName')}
+          </button>
+        </div>
+
+        {/* Bank Details Container */}
+        <div style={{ background: '#18181b', borderRadius: '16px', padding: '1rem', marginTop: '0.5rem', border: '1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{ fontSize: '0.8rem', color: '#d1d5db', marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            {currentBank.name} · {lang === 'ar' ? 'تحويل محلي' : 'Local transfer'}
           </div>
-          <div style={{ fontFamily: 'monospace', color: '#f8fafc', lineHeight: '1.7' }}>
-            <div>{t('complaint.rajhiAc')}</div>
-            <div style={{ color: '#34d399', fontWeight: '600' }}>{t('complaint.rajhiIban')}</div>
-            <div style={{ color: '#94a3b8', fontSize: '0.75rem' }}>{t('complaint.rajhiSwift')}</div>
+          
+          {renderRow(lang === 'ar' ? 'المستفيد' : 'Recipient', currentBank.recipient, 'recipient')}
+          {renderRow(lang === 'ar' ? 'العملة المقبولة' : 'Currency accepted', currentBank.currency, 'currency')}
+          {renderRow(lang === 'ar' ? 'رقم الحساب' : 'Account number', currentBank.accountNumber, 'accountNumber')}
+          {renderRow(lang === 'ar' ? 'الآيبان' : 'IBAN', currentBank.iban, 'iban')}
+          {renderRow(lang === 'ar' ? 'رمز سويفت' : 'SWIFT Code', currentBank.swift, 'swift')}
+          
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginTop: '16px', padding: '12px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '8px' }}>
+             <span style={{ fontSize: '1rem' }}>ℹ️</span>
+             <span style={{ fontSize: '0.75rem', color: '#93c5fd', lineHeight: '1.4' }}>
+               {lang === 'ar' 
+                 ? 'يرجى تحويل رسوم الصيانة وإرفاق إيصال الدفع في الخطوة التالية. سيتم مراجعة الطلب وإصدار رقم الخدمة الخاص بك.' 
+                 : 'Please transfer the service fee and upload the payment receipt in the next step. Your request will be reviewed and a Service UID will be issued.'}
+             </span>
           </div>
         </div>
       </div>
