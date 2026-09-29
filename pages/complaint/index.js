@@ -292,20 +292,32 @@ export default function ComplaintForm() {
       });
       const data = await res.json();
       
-      setFormData(prev => ({
-        ...prev,
-        warrantystatus: data.warrantystatus || 'OW',
-        chargeamount: data.chargeamount || prev.chargeamount || getDefaultCharge(prev.productgroup)
-      }));
+      setFormData(prev => {
+        const defaultCharge = getDefaultCharge(prev.productgroup);
+        const resolvedCharge = prev.productgroup === 'Refrigerator'
+          ? 300
+          : (data.chargeamount || prev.chargeamount || defaultCharge);
+        return {
+          ...prev,
+          warrantystatus: data.warrantystatus || 'OW',
+          chargeamount: resolvedCharge
+        };
+      });
       setStep(7);
     } catch (err) {
       // For local testing without n8n working, mock it
       console.error(err);
-      setFormData(prev => ({
-        ...prev,
-        warrantystatus: 'OW',
-        chargeamount: prev.chargeamount || getDefaultCharge(prev.productgroup)
-      }));
+      setFormData(prev => {
+        const defaultCharge = getDefaultCharge(prev.productgroup);
+        const resolvedCharge = prev.productgroup === 'Refrigerator'
+          ? 300
+          : (prev.chargeamount || defaultCharge);
+        return {
+          ...prev,
+          warrantystatus: 'OW',
+          chargeamount: resolvedCharge
+        };
+      });
       setStep(7);
       setError('Note: Warranty check proxy failed. Using mocked Out of Warranty response for testing.');
     }
