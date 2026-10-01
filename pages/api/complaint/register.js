@@ -127,11 +127,28 @@ export default async function handler(req, res) {
           message: verification.reason || 'Moyasar payment verification failed',
         });
       }
+      // The page sends the customer's phone as payment metadata - reject a payment made for someone else
+      const paidPhone = verification.payment?.metadata?.phone;
+      if (paidPhone && paidPhone !== String(fields.phone || '')) {
+        return res.status(400).json({ success: false, message: 'Payment does not belong to this registration' });
+      }
       isOnlinePaid = true;
     }
 
     const auth = getAuth();
     const sheets = google.sheets({ version: 'v4', auth });
+
+    // One Moyasar payment = one service ticket. Column R holds "Moyasar ID: <id>" for online payments.
+    if (isOnlinePaid) {
+      const proofRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${SHEET_NAME}!R2:R`,
+      });
+      const alreadyUsed = (proofRes.data.values || []).some(([v]) => v === `Moyasar ID: ${paymentId}`);
+      if (alreadyUsed) {
+        return res.status(409).json({ success: false, message: 'This payment has already been used for a registration' });
+      }
+    }
 
     const readRes = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,

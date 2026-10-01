@@ -4,6 +4,8 @@ import { useRouter } from 'next/router';
 import imageCompression from 'browser-image-compression';
 import { useLanguage } from '@/lib/LanguageContext';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import MoyasarPaymentForm from '@/components/MoyasarPaymentForm';
+import { savePaymentDraft, loadPaymentDraft, clearPaymentDraft } from '@/lib/paymentDraft';
 
 function BankDetailsCard({ t, lang }) {
   const [activeTab, setActiveTab] = useState('SNB');
@@ -174,6 +176,10 @@ export default function ComplaintForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [iwRegOption, setIwRegOption] = useState('free'); // 'free' | 'paid'
+  const [paymentMethod, setPaymentMethod] = useState(''); // '' | 'online' | 'manual'
+  const [pendingPaymentId, setPendingPaymentId] = useState(''); // paid Moyasar ID awaiting registration
+  const [paymentNotice, setPaymentNotice] = useState('');
+  const paymentReturnHandled = useRef(false);
   
   const [formData, setFormData] = useState({
     phone: '',
@@ -219,6 +225,7 @@ export default function ComplaintForm() {
       setFormData(prev => ({ ...prev, phone: router.query.phone }));
     }
   }, [router.query.phone]);
+
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -325,6 +332,165 @@ export default function ComplaintForm() {
   };
 
 
+
+  // Saved right before Moyasar redirects away, so the form can be rebuilt on return
+  const saveDraftBeforePayment = (payment) => savePaymentDraft({
+    paymentId: payment.id,
+    formData: {
+      ...formData,
+      decision: 'accepted',
+      chargeamount: formData.chargeamount || getDefaultCharge(formData.productgroup),
+    },
+    files,
+    iwRegOption,
+  });
+
+  const submitOnlineRegistration = async (paymentId, data, fileSet) => {
+    setLoading(true);
+    setError('');
+    setPendingPaymentId(paymentId);
+
+    try {
+      const formPayload = new FormData();
+      Object.keys(data).forEach(key => formPayload.append(key, data[key]));
+      formPayload.set('decision', 'accepted');
+      formPayload.set('chargeamount', data.chargeamount || getDefaultCharge(data.productgroup));
+      formPayload.set('payment_id', paymentId);
+
+      if (fileSet.modelserialimg) formPayload.append('modelserialimg', fileSet.modelserialimg);
+      if (fileSet.productimg) formPayload.append('productimg', fileSet.productimg);
+      if (fileSet.invoiceimg) formPayload.append('invoiceimg', fileSet.invoiceimg);
+
+      const res = await fetch('/api/complaint/register', {
+        method: 'POST',
+        body: formPayload,
+      });
+      const result = await res.json();
+
+      if (result.success) {
+        await clearPaymentDraft();
+        setPendingPaymentId('');
+        setFinalResult(result);
+        setStep(8);
+      } else {
+        setError(result.message || t('common.error'));
+      }
+    } catch (err) {
+      console.error('Online payment registration error:', err);
+      setError(t('common.error'));
+    }
+    setLoading(false);
+  };
+
+  // Handle the redirect back from Moyasar (3-D Secure / Apple Pay): /complaint?id=...&status=paid|failed&message=...
+  useEffect(() => {
+    if (!router.isReady || paymentReturnHandled.current || !router.query.id) return;
+    paymentReturnHandled.current = true;
+    const { id, status, message } = router.query;
+
+    (async () => {
+      const draft = await loadPaymentDraft();
+      // Drop the Moyasar params so a page refresh doesn't re-trigger this
+      router.replace(router.pathname, undefined, { shallow: true });
+
+      if (!draft || draft.paymentId !== id) {
+        if (status === 'paid') setPaymentNotice(t('complaint.paymentDraftMissing', { id }));
+        return;
+      }
+
+      setFormData(draft.formData);
+      setFiles(draft.files);
+      setIwRegOption(draft.iwRegOption || 'free');
+      setPaymentMethod('online');
+      setStep(7);
+
+      if (status === 'paid') {
+        await submitOnlineRegistration(id, draft.formData, draft.files);
+      } else {
+        await clearPaymentDraft();
+        setError(`${t('complaint.onlinePaymentFailed')}${message ? `: ${message}` : ''}`);
+      }
+    })();
+  }, [router.isReady, router.query.id]);
+
+  const renderMethodButton = (method, icon, title, subtitle, activeBg) => (
+    <button
+      type="button"
+      disabled={loading}
+      onClick={() => { setPaymentMethod(method); setError(''); }}
+      style={{
+        padding: '0.85rem 0.5rem',
+        borderRadius: '8px',
+        border: paymentMethod === method ? '1px solid transparent' : '1px solid var(--border-color)',
+        background: paymentMethod === method ? activeBg : 'transparent',
+        color: paymentMethod === method ? '#ffffff' : 'var(--text-secondary)',
+        cursor: loading ? 'not-allowed' : 'pointer',
+        transition: 'all 0.2s',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '0.25rem',
+      }}
+    >
+      <span style={{ fontSize: '1.4rem' }}>{icon}</span>
+      <span style={{ fontWeight: '700', fontSize: '0.9rem' }}>{title}</span>
+      <span style={{ fontSize: '0.7rem', opacity: 0.85 }}>{subtitle}</span>
+    </button>
+  );
+
+  // Online (Moyasar) vs manual bank transfer chooser, shared by the IW-paid and OW flows
+  const renderPaymentOptions = (manualContent) => {
+    const charge = formData.chargeamount || getDefaultCharge(formData.productgroup);
+    return (
+      <div style={{ marginTop: '1rem' }}>
+        <label className="form-label">{t('complaint.choosePaymentMethod')}</label>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '0.75rem',
+          margin: '0.5rem 0 1rem',
+          background: 'rgba(15, 23, 42, 0.6)',
+          padding: '0.5rem',
+          borderRadius: '10px',
+          border: '1px solid var(--border-color)'
+        }}>
+          {renderMethodButton('online', '💳', t('complaint.payOnlineBtn'), t('complaint.payOnlineSub'), 'linear-gradient(to right, #3b82f6, #8b5cf6)')}
+          {renderMethodButton('manual', '🏦', t('complaint.payManualBtn'), t('complaint.payManualSub'), 'var(--primary-color)')}
+        </div>
+
+        {paymentMethod === 'online' && (
+          loading ? (
+            <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+              <div className="spinner" style={{ margin: '0 auto 0.75rem auto' }} />
+              <div>{t('complaint.verifyingOnlinePayment')}</div>
+            </div>
+          ) : pendingPaymentId ? (
+            <div>
+              {error && <p style={{color: 'var(--error-color)'}}>{error}</p>}
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Payment ID: {pendingPaymentId}</p>
+              <button className="btn btn-primary" onClick={() => submitOnlineRegistration(pendingPaymentId, formData, files)}>
+                {t('complaint.retryRegistrationBtn')}
+              </button>
+            </div>
+          ) : (
+            <div>
+              {error && <p style={{color: 'var(--error-color)'}}>{error}</p>}
+              <MoyasarPaymentForm
+                amount={charge}
+                description={`Impex Service Ticket (${formData.productgroup} - ${formData.model})`}
+                metadata={{ phone: String(formData.phone || ''), productgroup: formData.productgroup, model: formData.model }}
+                onBeforeRedirect={saveDraftBeforePayment}
+                onError={(err) => setError(err)}
+                lang={lang}
+              />
+            </div>
+          )
+        )}
+
+        {paymentMethod === 'manual' && manualContent}
+      </div>
+    );
+  };
 
   const submitRegistration = async (decision = '') => {
     setLoading(true);
@@ -628,6 +794,7 @@ export default function ComplaintForm() {
                     {formData.chargeamount || getDefaultCharge(formData.productgroup)} {lang === 'ar' ? 'ر.س' : 'SAR'}
                   </h1>
 
+                  {renderPaymentOptions(
                   <div style={{
                     marginTop: '1rem',
                     background: 'rgba(15, 23, 42, 0.75)',
@@ -660,6 +827,7 @@ export default function ComplaintForm() {
                       {loading ? <div className="spinner" /> : t('complaint.submitPaidRegBtn')}
                     </button>
                   </div>
+                  )}
                 </div>
               )}
             </div>
@@ -699,6 +867,7 @@ export default function ComplaintForm() {
 
               {formData.decision === 'accepted' && (
                 <div style={{ marginTop: '1.5rem' }}>
+                  {renderPaymentOptions(
                   <div style={{
                     marginTop: '1rem',
                     background: 'rgba(15, 23, 42, 0.75)',
@@ -733,6 +902,7 @@ export default function ComplaintForm() {
                       {loading ? <div className="spinner" /> : t('complaint.submitPaymentProofBtn')}
                     </button>
                   </div>
+                  )}
                 </div>
               )}
             </div>
@@ -835,6 +1005,12 @@ export default function ComplaintForm() {
               {step > s ? '✓' : s}
             </div>
           ))}
+        </div>
+      )}
+
+      {paymentNotice && (
+        <div style={{ background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.4)', color: '#fcd34d', padding: '1rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.9rem' }}>
+          ⚠️ {paymentNotice}
         </div>
       )}
 

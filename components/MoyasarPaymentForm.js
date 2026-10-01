@@ -1,9 +1,26 @@
 import { useEffect, useRef, useState } from 'react';
 
-export default function MoyasarPaymentForm({ amount, description, onSuccess, onError, lang = 'en' }) {
+/**
+ * Renders the Moyasar hosted payment form.
+ *
+ * Flow: the customer submits card details -> Moyasar creates the payment and calls
+ * on_completed (status is usually 'initiated' at this point, NOT 'paid') -> the
+ * browser is redirected to the bank's 3-D Secure page -> Moyasar redirects back to
+ * callback_url with ?id=...&status=paid|failed&message=...
+ *
+ * Because that redirect is a full page load, the parent must persist its state in
+ * onBeforeRedirect(payment) and finish the registration when it sees ?id= on return.
+ */
+export default function MoyasarPaymentForm({ amount, description, metadata, onBeforeRedirect, onError, lang = 'en' }) {
   const formRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [initError, setInitError] = useState('');
+
+  // Keep latest callbacks/metadata in refs so re-renders of the parent don't re-init the form
+  const callbacksRef = useRef({ onBeforeRedirect, onError, metadata });
+  useEffect(() => {
+    callbacksRef.current = { onBeforeRedirect, onError, metadata };
+  });
 
   const publishableKey = process.env.NEXT_PUBLIC_MOYASAR_PUBLISHABLE_KEY;
 
@@ -44,22 +61,17 @@ export default function MoyasarPaymentForm({ amount, description, onSuccess, onE
               label: 'IMPEX Service',
               validate_merchant_url: 'https://api.moyasar.com/v1/applepay/initiate',
             },
+            metadata: callbacksRef.current.metadata || {},
+            // Called once the payment is created, before redirecting to 3-D Secure.
+            // Moyasar waits for the returned promise, so the draft is saved before the page unloads.
             on_completed: async function (payment) {
-              if (payment && payment.id) {
-                if (payment.status === 'paid') {
-                  onSuccess(payment.id);
-                } else {
-                  onError(
-                    lang === 'ar'
-                      ? `لم تكتمل عملية الدفع (${payment.status})`
-                      : `Payment failed with status: ${payment.status}`
-                  );
-                }
+              if (callbacksRef.current.onBeforeRedirect) {
+                await callbacksRef.current.onBeforeRedirect(payment);
               }
             },
             on_failed: async function (error) {
               console.error('Moyasar payment failed:', error);
-              onError(
+              callbacksRef.current.onError?.(
                 typeof error === 'string'
                   ? error
                   : error?.message || (lang === 'ar' ? 'فشلت عملية الدفع. يرجى المحاولة مرة أخرى.' : 'Payment failed. Please try again.')
@@ -115,7 +127,7 @@ export default function MoyasarPaymentForm({ amount, description, onSuccess, onE
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        justify: 'space-between',
+        justifyContent: 'space-between',
         marginBottom: '1rem',
         borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
         paddingBottom: '0.75rem'
