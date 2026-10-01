@@ -162,13 +162,9 @@ export default async function handler(req, res) {
     let paymentstatus = 'N/A';
     let sendConfirmationNow = false;
 
-    if (isOnlinePaid) {
-      seq += 1;
-      uid = `IMX-KSA-SVC-${String(seq).padStart(5, '0')}`;
-      status = 'REGISTERED';
-      paymentstatus = 'PAID_ONLINE';
-      sendConfirmationNow = true;
-    } else if (decision === 'accepted') {
+    if (isOnlinePaid || decision === 'accepted') {
+      // Online (Moyasar) and bank-transfer payments both wait for an admin to approve them
+      // in the Pending Verification tab; the confirmation is sent on approval.
       seq += 1;
       uid = `IMX-KSA-SVC-${String(seq).padStart(5, '0')}`;
       status = 'PENDING_PAYMENT_VERIFICATION';

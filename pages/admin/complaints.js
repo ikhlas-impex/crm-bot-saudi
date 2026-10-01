@@ -66,6 +66,108 @@ function getTimeAgo(dateStr) {
   return `${years} year${years > 1 ? 's' : ''} ago`;
 }
 
+const MOYASAR_PREFIX = 'Moyasar ID:';
+
+// Shows a complaint's payment proof inside the admin panel: the uploaded bank receipt
+// for manual transfers, or the live Moyasar record for online payments.
+function PaymentProofModal({ complaint, sessionid, onClose }) {
+  const proof = complaint.paymentproofimg || '';
+  const moyasarId = proof.startsWith(MOYASAR_PREFIX) ? proof.slice(MOYASAR_PREFIX.length).trim() : '';
+  const [payment, setPayment] = useState(null);
+  const [loadError, setLoadError] = useState('');
+
+  useEffect(() => {
+    if (!moyasarId) return;
+    fetch('/api/admin/payment-details', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionid, paymentId: moyasarId }),
+    })
+      .then(r => r.json())
+      .then(d => (d.success ? setPayment(d.payment) : setLoadError(d.message || 'Could not load payment')))
+      .catch(() => setLoadError('Network error while loading payment'));
+  }, [moyasarId, sessionid]);
+
+  // Drive links are stored as https://drive.google.com/uc?id=<id>; the thumbnail endpoint renders inline
+  const driveId = (proof.match(/[?&]id=([^&]+)/) || proof.match(/\/d\/([^/]+)/) || [])[1];
+  const imageSrc = driveId ? `https://drive.google.com/thumbnail?id=${driveId}&sz=w1600` : proof;
+
+  const expected = Number(complaint.chargeamount || 0);
+  const warnings = [];
+  if (payment) {
+    if (payment.status !== 'paid') warnings.push(`Payment status is "${payment.status}", not "paid"`);
+    if (payment.amount - payment.refunded < expected) warnings.push(`Paid ${payment.amount - payment.refunded} ${payment.currency} but the charge is ${expected} SAR`);
+    if (payment.metadata?.phone && payment.metadata.phone !== String(complaint.phone)) warnings.push(`Paid by phone ${payment.metadata.phone}, complaint phone is ${complaint.phone}`);
+    if (!payment.live) warnings.push('This is a TEST payment - no real money was received');
+  }
+
+  const row = (label, value) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', padding: '0.6rem 0', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '0.875rem' }}>
+      <span style={{ color: 'var(--text-secondary)' }}>{label}</span>
+      <span style={{ fontWeight: 600, textAlign: 'right', wordBreak: 'break-all' }}>{value || 'N/A'}</span>
+    </div>
+  );
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }} onClick={onClose}>
+      <div className="glass-panel" style={{ width: '100%', maxWidth: moyasarId ? '480px' : '720px', maxHeight: '90vh', overflowY: 'auto', padding: '1.5rem', position: 'relative' }} onClick={e => e.stopPropagation()}>
+        <button
+          onClick={onClose}
+          style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '1.5rem', cursor: 'pointer' }}
+        >
+          &times;
+        </button>
+        <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.25rem', color: 'var(--text-primary)' }}>Payment Proof</h3>
+        <p style={{ margin: '0 0 1rem 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+          {complaint.uid || 'N/A'} · {complaint.customername} · Charge: {expected} SAR
+        </p>
+
+        {!proof ? (
+          <p style={{ color: 'var(--text-secondary)' }}>No payment proof attached.</p>
+        ) : moyasarId ? (
+          <div>
+            <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>💳 Online payment (Moyasar)</span>
+            {loadError && <p style={{ color: 'var(--error-color)', marginTop: '1rem' }}>{loadError}</p>}
+            {!payment && !loadError && <div className="spinner" style={{ margin: '2rem auto' }} />}
+            {payment && (
+              <div style={{ marginTop: '1rem' }}>
+                {warnings.length > 0 && (
+                  <div style={{ background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.4)', borderRadius: '8px', padding: '0.75rem', marginBottom: '1rem', color: '#fca5a5', fontSize: '0.8rem' }}>
+                    {warnings.map(w => <div key={w}>⚠️ {w}</div>)}
+                  </div>
+                )}
+                {row('Status', <span style={{ color: payment.status === 'paid' ? '#10b981' : '#ef4444', textTransform: 'uppercase' }}>{payment.status}</span>)}
+                {row('Amount', `${payment.amount} ${payment.currency}`)}
+                {payment.refunded > 0 && row('Refunded', `${payment.refunded} ${payment.currency}`)}
+                {row('Method', [payment.sourceType, payment.cardBrand].filter(Boolean).join(' · '))}
+                {row('Card', payment.cardNumber)}
+                {row('Card holder', payment.cardName)}
+                {row('Gateway message', payment.gatewayMessage)}
+                {row('Paid at', payment.createdAt ? new Date(payment.createdAt).toLocaleString() : '')}
+                {row('Payer phone', payment.metadata?.phone)}
+                {row('Payment ID', payment.id)}
+                {row('Environment', payment.live ? 'LIVE' : 'TEST')}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div>
+            <span className="badge badge-warning" style={{ fontSize: '0.7rem' }}>🏦 Bank transfer receipt</span>
+            <img
+              src={imageSrc}
+              alt="Payment proof"
+              style={{ display: 'block', width: '100%', marginTop: '1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)' }}
+            />
+            <a href={proof} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ display: 'block', marginTop: '1rem', padding: '0.6rem', textAlign: 'center', fontSize: '0.85rem' }}>
+              Open original in new tab
+            </a>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function ComplaintsPage() {
   const router = useRouter();
   const { t } = useLanguage();
@@ -79,6 +181,7 @@ export default function ComplaintsPage() {
   const [remarksDraft, setRemarksDraft] = useState('');
   const [selectedProofsComplaint, setSelectedProofsComplaint] = useState(null);
   const [selectedComplaintDetails, setSelectedComplaintDetails] = useState(null);
+  const [viewingProofComplaint, setViewingProofComplaint] = useState(null);
 
   // Advanced Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -557,6 +660,9 @@ export default function ComplaintsPage() {
                     <span className={`badge ${c.paymentstatus === 'VERIFIED' ? 'badge-success' : c.paymentstatus === 'PENDING_VERIFICATION' ? 'badge-warning' : c.paymentstatus === 'REJECTED' ? 'badge-danger' : ''}`} style={{ fontSize: '0.65rem' }}>
                       {c.paymentstatus || 'N/A'}
                     </span>
+                    {(c.paymentproofimg || '').startsWith(MOYASAR_PREFIX) && (
+                      <span className="badge badge-success" style={{ fontSize: '0.65rem', marginLeft: '0.35rem' }}>💳 ONLINE</span>
+                    )}
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{c.status ? c.status.replace(/_/g, ' ') : 'N/A'}</div>
                 </td>
@@ -793,7 +899,7 @@ export default function ComplaintsPage() {
               {selectedComplaintDetails.invoiceimg && <a href={selectedComplaintDetails.invoiceimg} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>View Invoice</a>}
               {selectedComplaintDetails.modelserialimg && <a href={selectedComplaintDetails.modelserialimg} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>View Serial No Photo</a>}
               {selectedComplaintDetails.productimg && <a href={selectedComplaintDetails.productimg} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>View Product Photo</a>}
-              {selectedComplaintDetails.paymentproofimg && <a href={selectedComplaintDetails.paymentproofimg} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>View Payment Proof</a>}
+              {selectedComplaintDetails.paymentproofimg && <button type="button" onClick={() => setViewingProofComplaint(selectedComplaintDetails)} className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', width: 'auto' }}>View Payment Proof</button>}
             </div>
           </div>
         </div>
@@ -813,9 +919,17 @@ export default function ComplaintsPage() {
             {selectedProofsComplaint.invoiceimg ? <a href={selectedProofsComplaint.invoiceimg} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ padding: '0.75rem', textAlign: 'center' }}>View Invoice</a> : <span style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '0.5rem' }}>No Invoice</span>}
             {selectedProofsComplaint.modelserialimg ? <a href={selectedProofsComplaint.modelserialimg} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ padding: '0.75rem', textAlign: 'center' }}>View Serial No Photo</a> : <span style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '0.5rem' }}>No Serial Photo</span>}
             {selectedProofsComplaint.productimg ? <a href={selectedProofsComplaint.productimg} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ padding: '0.75rem', textAlign: 'center' }}>View Product Photo</a> : <span style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '0.5rem' }}>No Product Photo</span>}
-            {selectedProofsComplaint.paymentproofimg ? <a href={selectedProofsComplaint.paymentproofimg} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ padding: '0.75rem', textAlign: 'center' }}>View Payment Proof</a> : <span style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '0.5rem' }}>No Payment Proof</span>}
+            {selectedProofsComplaint.paymentproofimg ? <button type="button" onClick={() => setViewingProofComplaint(selectedProofsComplaint)} className="btn btn-secondary" style={{ padding: '0.75rem', textAlign: 'center' }}>{selectedProofsComplaint.paymentproofimg.startsWith(MOYASAR_PREFIX) ? '💳 View Online Payment' : 'View Payment Proof'}</button> : <span style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '0.5rem' }}>No Payment Proof</span>}
           </div>
         </div>
+      )}
+
+      {viewingProofComplaint && (
+        <PaymentProofModal
+          complaint={viewingProofComplaint}
+          sessionid={getSessionId()}
+          onClose={() => setViewingProofComplaint(null)}
+        />
       )}
     </div>
   );
