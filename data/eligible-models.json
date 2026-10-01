@@ -26,7 +26,7 @@
     },
     "TV": {
       "models": ["100\"", "50\"", "55\"", "58\"", "60\"", "65\"", "70\"", "75\"", "85\""],
-      "charge": 150
+      "charge": 1
     },
     "Washing Machine": {
       "models": ["WM0500TPW", "WM0600FW", "WM0700TMG", "WM0700TPW", "WM0750FS", "WM0800FS", "WM0800TMG", "WM1000FS", "WM1000TMG", "WM1000TPW", "WM1200TMG", "WM1400TWG", "WM4202", "WM4203", "WM4204", "WM4205", "WM4214", "WM4215", "WM4218"],
