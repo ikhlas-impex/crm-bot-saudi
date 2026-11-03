@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import imageCompression from 'browser-image-compression';
 import { useLanguage } from '@/lib/LanguageContext';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import MapPicker from '@/components/MapPicker';
 import MoyasarPaymentForm from '@/components/MoyasarPaymentForm';
 import { savePaymentDraft, loadPaymentDraft, clearPaymentDraft } from '@/lib/paymentDraft';
 
@@ -613,6 +614,12 @@ export default function ComplaintForm() {
             </div>
             <div className="form-group">
               <label className="form-label">{t('complaint.address')}</label>
+              <MapPicker onPick={p => setFormData(f => ({
+                ...f,
+                address: [p.address, p.link].filter(Boolean).join('\n'), // link rides in address so the sheet needs no new column
+                city: p.city || f.city,
+                area: p.area || f.area,
+              }))} />
               <textarea name="address" className="form-control" style={{minHeight: '80px'}} placeholder={t('complaint.addressPlaceholder')} value={formData.address} onChange={handleInputChange} />
             </div>
             <div style={{ display: 'flex', gap: '1rem' }}>
