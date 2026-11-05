@@ -632,7 +632,7 @@ export default function ComplaintsPage() {
 
           <tbody>
             {displayedComplaints.map((c, idx) => (
-              <tr key={c.uid || `${c.phone}-${c.createdat}`} id={`row-${c.uid}`} style={{ borderBottom: idx === displayedComplaints.length - 1 ? 'none' : '1px solid rgba(255,255,255,0.05)', transition: 'background 0.2s', background: (filter === 'FOLLOW_UP' && router.query.uid === c.uid) ? 'rgba(245, 158, 11, 0.1)' : 'transparent' }}>
+              <tr key={`${c.uid}-${c.phone}-${c.createdat}`} id={`row-${c.uid}`} style={{ borderBottom: idx === displayedComplaints.length - 1 ? 'none' : '1px solid rgba(255,255,255,0.05)', transition: 'background 0.2s', background: (filter === 'FOLLOW_UP' && router.query.uid === c.uid) ? 'rgba(245, 158, 11, 0.1)' : 'transparent' }}>
                 <td style={{ padding: '1rem', fontFamily: 'monospace', color: '#a5b4fc', fontSize: '0.875rem' }}>
                   <button 
                     onClick={() => setSelectedComplaintDetails(c)}

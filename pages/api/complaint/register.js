@@ -2,6 +2,7 @@ import { google } from 'googleapis';
 import formidable from 'formidable';
 import fs from 'fs';
 import { verifyMoyasarPayment } from '@/lib/moyasar';
+import { assignUid, createUidPlaceholder } from '@/lib/complaintUid';
 
 // File uploads need the raw body - disable Next's default JSON body parser.
 export const config = {
@@ -61,19 +62,6 @@ async function uploadToDrive(auth, file) {
     supportsAllDrives: true,
   });
   return `https://drive.google.com/uc?id=${fileId}`;
-}
-
-function nextSequence(existingUidColumn) {
-  let maxSeq = 0;
-  for (const row of existingUidColumn) {
-    const uid = String(row[0] || '');
-    const match = uid.match(/IMX-KSA-SVC-(\d+)/);
-    if (match) {
-      const n = parseInt(match[1], 10);
-      if (n > maxSeq) maxSeq = n;
-    }
-  }
-  return maxSeq;
 }
 
 function parseForm(req) {
@@ -150,33 +138,24 @@ export default async function handler(req, res) {
       }
     }
 
-    const readRes = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAME}!A2:A`,
-    });
-    let seq = nextSequence(readRes.data.values || []);
-
-    let uid = '';
     let status = '';
     let cancelreason = '';
     let paymentstatus = 'N/A';
     let sendConfirmationNow = false;
+    let needsUid = true;
 
     if (isOnlinePaid || decision === 'accepted') {
       // Online (Moyasar) and bank-transfer payments both wait for an admin to approve them
       // in the Pending Verification tab; the confirmation is sent on approval.
-      seq += 1;
-      uid = `IMX-KSA-SVC-${String(seq).padStart(5, '0')}`;
       status = 'PENDING_PAYMENT_VERIFICATION';
       paymentstatus = 'PENDING_VERIFICATION';
     } else if (warrantystatus === 'IW') {
-      seq += 1;
-      uid = `IMX-KSA-SVC-${String(seq).padStart(5, '0')}`;
       status = 'REGISTERED';
       sendConfirmationNow = true;
     } else {
       status = 'OW_CANCELLED';
       cancelreason = 'OW - Customer not willing to pay';
+      needsUid = false;
     }
 
     const [modelserialimg, productimg, invoiceimg, uploadedPaymentProof] = await Promise.all([
@@ -190,8 +169,10 @@ export default async function handler(req, res) {
 
     const now = new Date().toISOString();
 
+    const placeholder = needsUid ? createUidPlaceholder() : '';
+
     const row = [
-      uid,
+      placeholder,
       now.slice(0, 10),
       fields.phone || '',
       fields.customername || '',
@@ -224,6 +205,8 @@ export default async function handler(req, res) {
       valueInputOption: 'USER_ENTERED',
       requestBody: { values: [row] },
     });
+
+    const uid = needsUid ? await assignUid(sheets, SPREADSHEET_ID, SHEET_NAME, placeholder) : '';
 
     if (sendConfirmationNow) {
       // Must await on Vercel, otherwise the function terminates before the request sends
